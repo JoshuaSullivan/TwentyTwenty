@@ -1,10 +1,3 @@
-//
-//  ContentView.swift
-//  TwentyTwenty
-//
-//  Created by Joshua Sullivan on 11/13/25.
-//
-
 import SwiftUI
 
 struct ContentView: View {
