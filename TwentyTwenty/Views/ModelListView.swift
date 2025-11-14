@@ -32,7 +32,7 @@ struct ModelListView: View {
             }
             .navigationTitle("Vision Models")
             .navigationDestination(for: VisionModel.self) { model in
-                ModelDetailPlaceholder(model: model)
+                ModelDetailRouter(model: model)
             }
         }
     }
