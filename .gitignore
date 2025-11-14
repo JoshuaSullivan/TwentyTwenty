@@ -84,3 +84,6 @@ fastlane/*.env
 
 iOSInjectionProject/
 claude/
+
+# Documentation (per project requirements)
+docs/
