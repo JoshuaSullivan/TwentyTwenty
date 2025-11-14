@@ -12,7 +12,7 @@ struct DetectFaceRectanglesView: View {
     }
 
     var body: some View {
-        ModelDetailView(viewModel: viewModel) {
+        ModelDetailView(viewModel: viewModel, resultsView: {
             // Results View
             if !viewModel.detectedFaces.isEmpty {
                 VStack(alignment: .leading, spacing: 16) {
