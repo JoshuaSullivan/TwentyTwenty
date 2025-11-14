@@ -14,6 +14,7 @@ struct ImageSelectionView: View {
     @State private var showingPhotoLibraryPicker = false
     @State private var showingCameraPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem?
+    @Environment(\.dismiss) private var dismiss
 
     init(
         selectedImage: Binding<UIImage?>,
@@ -86,7 +87,7 @@ struct ImageSelectionView: View {
             )
         }
         .sheet(isPresented: $showingCameraPicker) {
-            CameraPickerRepresentable(selectedImage: $selectedImage, dismiss: DismissAction())
+            CameraPickerRepresentable(selectedImage: $selectedImage, dismiss: dismiss)
                 .ignoresSafeArea()
         }
     }

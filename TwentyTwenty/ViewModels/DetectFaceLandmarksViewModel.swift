@@ -3,10 +3,10 @@ import UIKit
 import Vision
 import Observation
 
-/// ViewModel for the Detect Face Rectangles model
+/// ViewModel for the Detect Face Landmarks model
 @Observable
 @MainActor
-final class DetectFaceRectanglesViewModel: BaseModelDetailViewModel {
+final class DetectFaceLandmarksViewModel: BaseModelDetailViewModel {
     // MARK: - BaseModelDetailViewModel Conformance
 
     let model: VisionModel
@@ -21,8 +21,8 @@ final class DetectFaceRectanglesViewModel: BaseModelDetailViewModel {
 
     // MARK: - Model-Specific State
 
-    /// Detected faces from the last analysis
-    var detectedFaces: [DetectedFace] = []
+    /// Detected faces with landmarks from the last analysis
+    var detectedFaces: [FaceWithLandmarks] = []
 
     // MARK: - Initialization
 
@@ -44,7 +44,7 @@ final class DetectFaceRectanglesViewModel: BaseModelDetailViewModel {
 
         do {
             let (faces, tracker) = try await PerformanceTracker.measure {
-                try await performFaceDetection(on: image)
+                try await performFaceLandmarksDetection(on: image)
             }
 
             detectedFaces = faces
@@ -68,12 +68,12 @@ final class DetectFaceRectanglesViewModel: BaseModelDetailViewModel {
 
     // MARK: - Private Methods
 
-    private func performFaceDetection(on image: UIImage) async throws -> [DetectedFace] {
+    private func performFaceLandmarksDetection(on image: UIImage) async throws -> [FaceWithLandmarks] {
         guard let cgImage = image.cgImage else {
             throw VisionError.invalidImage
         }
 
-        let request = VNDetectFaceRectanglesRequest()
+        let request = VNDetectFaceLandmarksRequest()
 
         let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
         try handler.perform([request])
@@ -83,19 +83,20 @@ final class DetectFaceRectanglesViewModel: BaseModelDetailViewModel {
         }
 
         return results.enumerated().map { index, observation in
-            DetectedFace(from: observation, index: index, imageSize: image.size)
+            FaceWithLandmarks(from: observation, index: index, imageSize: image.size)
         }
     }
 }
 
-// MARK: - Detected Face Model
+// MARK: - Face With Landmarks Model
 
-/// Represents a detected face
-struct DetectedFace: Identifiable {
+/// Represents a detected face with landmarks
+struct FaceWithLandmarks: Identifiable {
     let id = UUID()
     let index: Int
     let confidence: Float
     let boundingBox: CGRect
+    let landmarks: FaceLandmarks
 
     init(from observation: VNFaceObservation, index: Int, imageSize: CGSize) {
         self.index = index
@@ -109,5 +110,53 @@ struct DetectedFace: Identifiable {
             width: box.width * imageSize.width,
             height: box.height * imageSize.height
         )
+
+        self.landmarks = FaceLandmarks(from: observation.landmarks)
+    }
+}
+
+/// Represents face landmarks
+struct FaceLandmarks {
+    let hasLeftEye: Bool
+    let hasRightEye: Bool
+    let hasNose: Bool
+    let hasMouth: Bool
+    let hasFaceContour: Bool
+    let hasLeftEyebrow: Bool
+    let hasRightEyebrow: Bool
+
+    let totalPointsCount: Int
+
+    init(from landmarks: VNFaceLandmarks2D?) {
+        guard let landmarks = landmarks else {
+            self.hasLeftEye = false
+            self.hasRightEye = false
+            self.hasNose = false
+            self.hasMouth = false
+            self.hasFaceContour = false
+            self.hasLeftEyebrow = false
+            self.hasRightEyebrow = false
+            self.totalPointsCount = 0
+            return
+        }
+
+        self.hasLeftEye = landmarks.leftEye != nil
+        self.hasRightEye = landmarks.rightEye != nil
+        self.hasNose = landmarks.nose != nil
+        self.hasMouth = landmarks.outerLips != nil
+        self.hasFaceContour = landmarks.faceContour != nil
+        self.hasLeftEyebrow = landmarks.leftEyebrow != nil
+        self.hasRightEyebrow = landmarks.rightEyebrow != nil
+
+        var count = 0
+        count += landmarks.leftEye?.pointCount ?? 0
+        count += landmarks.rightEye?.pointCount ?? 0
+        count += landmarks.nose?.pointCount ?? 0
+        count += landmarks.outerLips?.pointCount ?? 0
+        count += landmarks.innerLips?.pointCount ?? 0
+        count += landmarks.faceContour?.pointCount ?? 0
+        count += landmarks.leftEyebrow?.pointCount ?? 0
+        count += landmarks.rightEyebrow?.pointCount ?? 0
+        self.totalPointsCount = count
     }
 }

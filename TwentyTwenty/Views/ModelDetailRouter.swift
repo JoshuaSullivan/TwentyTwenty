@@ -18,6 +18,18 @@ struct ModelDetailRouter: View {
         case .classifyImage:
             ClassifyImageView(model: model)
 
+        case .detectRectangles:
+            DetectRectanglesView(model: model)
+
+        case .calculateImageAestheticsScores:
+            CalculateImageAestheticsScoresView(model: model)
+
+        case .detectHorizon:
+            DetectHorizonView(model: model)
+
+        case .detectFaceLandmarks:
+            DetectFaceLandmarksView(model: model)
+
         // Placeholder for models not yet implemented
         default:
             ModelDetailPlaceholder(model: model)

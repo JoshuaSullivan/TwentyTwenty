@@ -46,7 +46,7 @@ final class RecognizeTextViewModel: BaseModelDetailViewModel {
         recognizedTexts = []
 
         do {
-            let (texts, tracker) = await PerformanceTracker.measure {
+            let (texts, tracker) = try await PerformanceTracker.measure {
                 try await performTextRecognition(on: image)
             }
 

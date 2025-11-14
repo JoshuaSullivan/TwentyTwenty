@@ -13,7 +13,7 @@ struct RecognizeTextView: View {
     }
 
     var body: some View {
-        ModelDetailView(viewModel: viewModel) {
+        ModelDetailView(viewModel: viewModel, configurationView: {
             // Configuration View
             VStack(alignment: .leading, spacing: 12) {
                 Text("Recognition Level")
@@ -27,7 +27,7 @@ struct RecognizeTextView: View {
                 .pickerStyle(.segmented)
                 .accessibilityLabel("Choose text recognition level: fast or accurate")
             }
-        } resultsView: {
+        }, resultsView: {
             // Results View
             if !viewModel.recognizedTexts.isEmpty {
                 VStack(alignment: .leading, spacing: 16) {
@@ -59,7 +59,7 @@ struct RecognizeTextView: View {
                     }
                 }
             }
-        }
+        })
     }
 }
 

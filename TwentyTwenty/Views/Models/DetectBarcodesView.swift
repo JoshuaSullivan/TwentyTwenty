@@ -13,7 +13,7 @@ struct DetectBarcodesView: View {
     }
 
     var body: some View {
-        ModelDetailView(viewModel: viewModel) {
+        ModelDetailView(viewModel: viewModel, configurationView: {
             // Configuration View
             VStack(alignment: .leading, spacing: 12) {
                 Text("Symbologies")
@@ -22,7 +22,7 @@ struct DetectBarcodesView: View {
 
                 SymbologyPicker(selectedSymbologies: $viewModel.selectedSymbologies)
             }
-        } resultsView: {
+        }, resultsView: {
             // Results View
             if !viewModel.detectedBarcodes.isEmpty {
                 VStack(alignment: .leading, spacing: 16) {
@@ -34,7 +34,7 @@ struct DetectBarcodesView: View {
                     }
                 }
             }
-        }
+        })
     }
 }
 

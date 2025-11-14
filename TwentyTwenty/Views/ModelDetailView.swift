@@ -7,10 +7,10 @@ struct ModelDetailView<ViewModel: BaseModelDetailViewModel, ConfigurationView: V
     @State var viewModel: ViewModel
 
     /// View builder for model-specific configuration controls
-    let configurationView: () -> ConfigurationView
+    @ViewBuilder let configurationView: () -> ConfigurationView
 
     /// View builder for model-specific results display
-    let resultsView: () -> ResultsView
+    @ViewBuilder let resultsView: () -> ResultsView
 
     var body: some View {
         ScrollView {

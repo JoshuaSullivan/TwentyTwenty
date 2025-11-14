@@ -46,7 +46,7 @@ final class ClassifyImageViewModel: BaseModelDetailViewModel {
         classifications = []
 
         do {
-            let (results, tracker) = await PerformanceTracker.measure {
+            let (results, tracker) = try await PerformanceTracker.measure {
                 try await performImageClassification(on: image)
             }
 

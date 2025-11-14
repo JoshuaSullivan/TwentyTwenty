@@ -12,7 +12,7 @@ struct ClassifyImageView: View {
     }
 
     var body: some View {
-        ModelDetailView(viewModel: viewModel) {
+        ModelDetailView(viewModel: viewModel, configurationView: {
             // Configuration View
             VStack(alignment: .leading, spacing: 12) {
                 Text("Maximum Results")
@@ -22,7 +22,7 @@ struct ClassifyImageView: View {
                 Stepper("\(viewModel.maxResults) results", value: $viewModel.maxResults, in: 1...50)
                     .accessibilityLabel("Maximum number of classification results: \(viewModel.maxResults)")
             }
-        } resultsView: {
+        }, resultsView: {
             // Results View
             if !viewModel.classifications.isEmpty {
                 VStack(alignment: .leading, spacing: 16) {
@@ -38,7 +38,7 @@ struct ClassifyImageView: View {
                     }
                 }
             }
-        }
+        })
     }
 }
 

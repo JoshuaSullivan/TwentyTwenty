@@ -55,7 +55,7 @@ final class DetectBarcodesViewModel: BaseModelDetailViewModel {
         detectedBarcodes = []
 
         do {
-            let (barcodes, tracker) = await PerformanceTracker.measure {
+            let (barcodes, tracker) = try await PerformanceTracker.measure {
                 try await performBarcodeDetection(on: image)
             }
 
@@ -146,7 +146,7 @@ struct DetectedBarcode: Identifiable {
         case .gs1DataBarLimited: return "GS1 DataBar Limited"
         case .microQR: return "Micro QR"
         case .microPDF417: return "Micro PDF417"
-        @unknown default: return "Unknown"
+        default: return "Unknown"
         }
     }
 }
