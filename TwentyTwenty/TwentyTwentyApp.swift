@@ -4,7 +4,7 @@ import SwiftUI
 struct TwentyTwentyApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ModelListView()
         }
     }
 }
