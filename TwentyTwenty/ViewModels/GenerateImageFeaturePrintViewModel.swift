@@ -109,6 +109,8 @@ struct ImageFeaturePrint: Identifiable {
             self.elementType = "Float"
         case .double:
             self.elementType = "Double"
+        case .unknown:
+            self.elementType = "Unknown"
         @unknown default:
             self.elementType = "Unknown"
         }
