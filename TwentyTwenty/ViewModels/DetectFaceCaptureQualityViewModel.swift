@@ -19,6 +19,14 @@ final class DetectFaceCaptureQualityViewModel: BaseModelDetailViewModel {
         [.people]
     }
 
+    var overlayImage: UIImage? {
+        guard !faceQualityResults.isEmpty,
+              let image = selectedImage else {
+            return nil
+        }
+        return generateFaceQualityOverlay(for: image)
+    }
+
     // MARK: - Model-Specific State
 
     /// Detected faces with quality scores from the last analysis
@@ -85,6 +93,15 @@ final class DetectFaceCaptureQualityViewModel: BaseModelDetailViewModel {
         return results.enumerated().map { index, observation in
             FaceQualityResult(from: observation, index: index, imageSize: image.size)
         }
+    }
+
+    private func generateFaceQualityOverlay(for image: UIImage) -> UIImage {
+        let rectangles = faceQualityResults.map { result in
+            let label = String(format: "%@ (%.0f%%)", result.qualityRating, result.quality * 100)
+            return (rect: result.boundingBox, label: label)
+        }
+
+        return OverlayRenderer.renderRectangles(rectangles, imageSize: image.size)
     }
 }
 

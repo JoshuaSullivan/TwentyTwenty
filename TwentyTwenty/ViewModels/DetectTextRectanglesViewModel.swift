@@ -19,6 +19,14 @@ final class DetectTextRectanglesViewModel: BaseModelDetailViewModel {
         [.documents, .text]
     }
 
+    var overlayImage: UIImage? {
+        guard !textRectangles.isEmpty,
+              let image = selectedImage else {
+            return nil
+        }
+        return generateTextOverlay(for: image)
+    }
+
     // MARK: - Model-Specific State
 
     /// Detected text rectangles from the last analysis
@@ -86,6 +94,14 @@ final class DetectTextRectanglesViewModel: BaseModelDetailViewModel {
         return results.enumerated().map { index, observation in
             DetectedTextRectangle(from: observation, index: index, imageSize: image.size)
         }
+    }
+
+    private func generateTextOverlay(for image: UIImage) -> UIImage {
+        let rectangles = textRectangles.map { rect in
+            (rect: rect.boundingBox, label: nil as String?)
+        }
+
+        return OverlayRenderer.renderRectangles(rectangles, imageSize: image.size, lineWidth: 2)
     }
 }
 

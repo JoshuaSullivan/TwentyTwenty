@@ -19,6 +19,14 @@ final class DetectHumanBodyPoseViewModel: BaseModelDetailViewModel {
         [.people]
     }
 
+    var overlayImage: UIImage? {
+        guard !detectedPoses.isEmpty,
+              let image = selectedImage else {
+            return nil
+        }
+        return generatePoseOverlay(for: image)
+    }
+
     // MARK: - Model-Specific State
 
     /// Detected body poses from the last analysis
@@ -85,6 +93,65 @@ final class DetectHumanBodyPoseViewModel: BaseModelDetailViewModel {
         return results.enumerated().compactMap { index, observation in
             HumanBodyPose(from: observation, index: index, imageSize: image.size)
         }
+    }
+
+    private func generatePoseOverlay(for image: UIImage) -> UIImage {
+        let poses = detectedPoses.map { pose -> (joints: [CGPoint], connections: [(Int, Int)]) in
+            // Create a dictionary mapping joint names to indices
+            var jointMap: [String: Int] = [:]
+            let jointPoints = pose.joints.enumerated().map { index, joint -> CGPoint in
+                // Normalize joint name: remove "_joint" suffix, underscores, and lowercase
+                let normalizedName = joint.name
+                    .lowercased()
+                    .replacingOccurrences(of: "_joint", with: "")
+                    .replacingOccurrences(of: "_", with: "")
+                jointMap[normalizedName] = index
+                return joint.position
+            }
+
+            // Define skeleton connections using actual Vision joint names
+            var connections: [(Int, Int)] = []
+            let connectionPairs: [(String, String)] = [
+                // Head to face
+                ("head", "lefteye"),
+                ("head", "righteye"),
+                ("lefteye", "leftear"),
+                ("righteye", "rightear"),
+                // Neck/shoulders (head connects down to shoulders)
+                ("head", "leftshoulder1"),
+                ("head", "rightshoulder1"),
+                // Upper body
+                ("leftshoulder1", "rightshoulder1"),
+                // Spine (shoulders to hips)
+                ("leftshoulder1", "leftupleg"),
+                ("rightshoulder1", "rightupleg"),
+                // Hips
+                ("leftupleg", "rightupleg"),
+                // Left arm
+                ("leftshoulder1", "leftforearm"),
+                ("leftforearm", "lefthand"),
+                // Right arm
+                ("rightshoulder1", "rightforearm"),
+                ("rightforearm", "righthand"),
+                // Left leg
+                ("leftupleg", "leftleg"),
+                ("leftleg", "leftfoot"),
+                // Right leg
+                ("rightupleg", "rightleg"),
+                ("rightleg", "rightfoot")
+            ]
+
+            for (from, to) in connectionPairs {
+                if let fromIndex = jointMap[from],
+                   let toIndex = jointMap[to] {
+                    connections.append((fromIndex, toIndex))
+                }
+            }
+
+            return (joints: jointPoints, connections: connections)
+        }
+
+        return OverlayRenderer.renderPoseSkeletons(poses, imageSize: image.size)
     }
 }
 

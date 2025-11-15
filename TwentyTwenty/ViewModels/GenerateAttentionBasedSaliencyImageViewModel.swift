@@ -19,6 +19,15 @@ final class GenerateAttentionBasedSaliencyImageViewModel: BaseModelDetailViewMod
         [.objects, .people, .nature]
     }
 
+    var overlayImage: UIImage? {
+        guard !saliencyResults.isEmpty,
+              let image = selectedImage,
+              let firstResult = saliencyResults.first else {
+            return nil
+        }
+        return generateSaliencyOverlay(for: image, result: firstResult)
+    }
+
     // MARK: - Model-Specific State
 
     /// Generated saliency results from the last analysis
@@ -85,6 +94,15 @@ final class GenerateAttentionBasedSaliencyImageViewModel: BaseModelDetailViewMod
         return results.enumerated().map { index, observation in
             AttentionSaliency(from: observation, index: index, imageSize: image.size)
         }
+    }
+
+    private func generateSaliencyOverlay(for image: UIImage, result: AttentionSaliency) -> UIImage {
+        let rectangles = result.salientObjects.map { object in
+            let label = String(format: "%.0f%%", object.confidence * 100)
+            return (rect: object.boundingBox, label: label)
+        }
+
+        return OverlayRenderer.renderRectangles(rectangles, imageSize: image.size)
     }
 }
 

@@ -19,6 +19,14 @@ final class RecognizeAnimalsViewModel: BaseModelDetailViewModel {
         [.animals]
     }
 
+    var overlayImage: UIImage? {
+        guard !recognizedAnimals.isEmpty,
+              let image = selectedImage else {
+            return nil
+        }
+        return generateAnimalOverlay(for: image)
+    }
+
     // MARK: - Model-Specific State
 
     /// Recognized animals from the last analysis
@@ -85,6 +93,15 @@ final class RecognizeAnimalsViewModel: BaseModelDetailViewModel {
         return results.enumerated().map { index, observation in
             RecognizedAnimal(from: observation, index: index, imageSize: image.size)
         }
+    }
+
+    private func generateAnimalOverlay(for image: UIImage) -> UIImage {
+        let rectangles = recognizedAnimals.map { animal in
+            let label = String(format: "%@ (%.0f%%)", animal.topLabel, animal.confidence * 100)
+            return (rect: animal.boundingBox, label: label)
+        }
+
+        return OverlayRenderer.renderRectangles(rectangles, imageSize: image.size)
     }
 }
 

@@ -19,6 +19,14 @@ final class DetectAnimalBodyPoseViewModel: BaseModelDetailViewModel {
         [.animals]
     }
 
+    var overlayImage: UIImage? {
+        guard !detectedPoses.isEmpty,
+              let image = selectedImage else {
+            return nil
+        }
+        return generatePoseOverlay(for: image)
+    }
+
     // MARK: - Model-Specific State
 
     /// Detected animal poses from the last analysis
@@ -85,6 +93,71 @@ final class DetectAnimalBodyPoseViewModel: BaseModelDetailViewModel {
         return results.enumerated().compactMap { index, observation in
             AnimalBodyPose(from: observation, index: index, imageSize: image.size)
         }
+    }
+
+    private func generatePoseOverlay(for image: UIImage) -> UIImage {
+        let poses = detectedPoses.map { pose -> (joints: [CGPoint], connections: [(Int, Int)]) in
+            // Create a dictionary mapping joint names to indices
+            var jointMap: [String: Int] = [:]
+            let jointPoints = pose.joints.enumerated().map { index, joint -> CGPoint in
+                // Normalize joint name: remove "_joint" suffix, underscores, and lowercase
+                let normalizedName = joint.name
+                    .lowercased()
+                    .replacingOccurrences(of: "_joint", with: "")
+                    .replacingOccurrences(of: "_", with: "")
+                jointMap[normalizedName] = index
+                return joint.position
+            }
+
+            // Define skeleton connections for animals (cats/dogs)
+            var connections: [(Int, Int)] = []
+            let connectionPairs: [(String, String)] = [
+                // Ears (outer to inner)
+                ("lefteartop", "leftearmiddle"),
+                ("leftearmiddle", "leftearbottom"),
+                ("righteartop", "rightearmiddle"),
+                ("rightearmiddle", "rightearbottom"),
+                // Head - ears to eyes
+                ("leftearbottom", "lefteye"),
+                ("rightearbottom", "righteye"),
+                // Head - eyes to nose
+                ("lefteye", "nose"),
+                ("righteye", "nose"),
+                // Nose to neck
+                ("nose", "neck"),
+                // Front left leg
+                ("neck", "leftfrontelbow"),
+                ("leftfrontelbow", "leftfrontknee"),
+                ("leftfrontknee", "leftfrontpaw"),
+                // Front right leg
+                ("neck", "rightfrontelbow"),
+                ("rightfrontelbow", "rightfrontknee"),
+                ("rightfrontknee", "rightfrontpaw"),
+                // Back left leg
+                ("neck", "leftbackelbow"),
+                ("leftbackelbow", "leftbackknee"),
+                ("leftbackknee", "leftbackpaw"),
+                // Back right leg
+                ("neck", "rightbackelbow"),
+                ("rightbackelbow", "rightbackknee"),
+                ("rightbackknee", "rightbackpaw"),
+                // Tail
+                ("neck", "tailtop"),
+                ("tailtop", "tailmiddle"),
+                ("tailmiddle", "tailbottom")
+            ]
+
+            for (from, to) in connectionPairs {
+                if let fromIndex = jointMap[from],
+                   let toIndex = jointMap[to] {
+                    connections.append((fromIndex, toIndex))
+                }
+            }
+
+            return (joints: jointPoints, connections: connections)
+        }
+
+        return OverlayRenderer.renderPoseSkeletons(poses, imageSize: image.size)
     }
 }
 

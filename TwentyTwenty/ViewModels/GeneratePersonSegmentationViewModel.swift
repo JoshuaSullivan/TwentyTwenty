@@ -19,6 +19,15 @@ final class GeneratePersonSegmentationViewModel: BaseModelDetailViewModel {
         [.people]
     }
 
+    var overlayImage: UIImage? {
+        guard !segmentationResults.isEmpty,
+              let image = selectedImage,
+              let firstMask = segmentationResults.first?.pixelBuffer else {
+            return nil
+        }
+        return OverlayRenderer.renderBitmapMask(firstMask, imageSize: image.size)
+    }
+
     // MARK: - Model-Specific State
 
     /// Generated person segmentation results from the last analysis
@@ -99,9 +108,11 @@ struct PersonSegmentation: Identifiable {
     let id = UUID()
     let index: Int
     let confidence: Float
+    let pixelBuffer: CVPixelBuffer
 
     init(from observation: VNPixelBufferObservation, index: Int) {
         self.index = index
         self.confidence = observation.confidence
+        self.pixelBuffer = observation.pixelBuffer
     }
 }

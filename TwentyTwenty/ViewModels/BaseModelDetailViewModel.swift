@@ -23,6 +23,9 @@ protocol BaseModelDetailViewModel: AnyObject, Observable {
     /// Recommended content types for this model
     var recommendedContentTypes: Set<ImageContentType> { get }
 
+    /// Optional overlay image to display on top of the selected image
+    var overlayImage: UIImage? { get }
+
     /// Processes the currently selected image with the Vision model
     func processImage() async
 
@@ -36,6 +39,11 @@ extension BaseModelDetailViewModel {
     /// Default implementation returns empty set (all images suitable)
     var recommendedContentTypes: Set<ImageContentType> {
         []
+    }
+
+    /// Default implementation - no overlay
+    var overlayImage: UIImage? {
+        nil
     }
 
     /// Default implementation clears error and statistics

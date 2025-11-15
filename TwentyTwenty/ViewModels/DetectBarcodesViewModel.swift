@@ -19,6 +19,14 @@ final class DetectBarcodesViewModel: BaseModelDetailViewModel {
         [.barcodes]
     }
 
+    var overlayImage: UIImage? {
+        guard !detectedBarcodes.isEmpty,
+              let image = selectedImage else {
+            return nil
+        }
+        return generateBarcodeOverlay(for: image)
+    }
+
     // MARK: - Model-Specific State
 
     /// Detected barcodes from the last analysis
@@ -98,6 +106,15 @@ final class DetectBarcodesViewModel: BaseModelDetailViewModel {
         return results.compactMap { observation in
             DetectedBarcode(from: observation, imageSize: image.size)
         }
+    }
+
+    private func generateBarcodeOverlay(for image: UIImage) -> UIImage {
+        let rectangles = detectedBarcodes.map { barcode in
+            let label = "\(barcode.symbologyName)\n\(barcode.payloadString ?? "N/A")"
+            return (rect: barcode.boundingBox, label: label)
+        }
+
+        return OverlayRenderer.renderRectangles(rectangles, imageSize: image.size)
     }
 }
 

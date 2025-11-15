@@ -19,6 +19,14 @@ final class DetectHumanRectanglesViewModel: BaseModelDetailViewModel {
         [.people]
     }
 
+    var overlayImage: UIImage? {
+        guard !detectedHumans.isEmpty,
+              let image = selectedImage else {
+            return nil
+        }
+        return generateHumanOverlay(for: image)
+    }
+
     // MARK: - Model-Specific State
 
     /// Detected human rectangles from the last analysis
@@ -85,6 +93,15 @@ final class DetectHumanRectanglesViewModel: BaseModelDetailViewModel {
         return results.enumerated().map { index, observation in
             DetectedHuman(from: observation, index: index, imageSize: image.size)
         }
+    }
+
+    private func generateHumanOverlay(for image: UIImage) -> UIImage {
+        let rectangles = detectedHumans.map { human in
+            let label = String(format: "%.0f%%", human.confidence * 100)
+            return (rect: human.boundingBox, label: label)
+        }
+
+        return OverlayRenderer.renderRectangles(rectangles, imageSize: image.size)
     }
 }
 

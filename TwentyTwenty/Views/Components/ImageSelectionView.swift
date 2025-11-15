@@ -9,6 +9,14 @@ struct ImageSelectionView: View {
     /// Optional filter for recommended bundled images based on content type
     let recommendedContentTypes: Set<ImageContentType>
 
+    /// Optional overlay image to composite on top
+    let overlayImage: UIImage?
+
+    /// State for overlay display
+    @State private var showOverlay = true
+    @State private var overlayOpacity = 0.7
+    @State private var overlayTint = Color.green
+
     /// State for presenting image pickers
     @State private var showingBundledImagePicker = false
     @State private var showingPhotoLibraryPicker = false
@@ -18,10 +26,12 @@ struct ImageSelectionView: View {
 
     init(
         selectedImage: Binding<UIImage?>,
-        recommendedContentTypes: Set<ImageContentType> = []
+        recommendedContentTypes: Set<ImageContentType> = [],
+        overlayImage: UIImage? = nil
     ) {
         self._selectedImage = selectedImage
         self.recommendedContentTypes = recommendedContentTypes
+        self.overlayImage = overlayImage
     }
 
     var body: some View {
@@ -29,13 +39,29 @@ struct ImageSelectionView: View {
             // MARK: - Selected Image Display
 
             if let image = selectedImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
+                VStack(spacing: 12) {
+                    ZStack {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+
+                        if showOverlay, let overlay = overlayImage {
+                            Image(uiImage: overlay)
+                                .resizable()
+                                .scaledToFit()
+                                .colorMultiply(overlayTint)
+                                .opacity(overlayOpacity)
+                        }
+                    }
                     .frame(maxHeight: 300)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .shadow(radius: 4)
                     .accessibilityLabel("Selected image for analysis")
+
+                    if overlayImage != nil {
+                        overlayControls
+                    }
+                }
             } else {
                 placeholderView
             }
@@ -112,6 +138,45 @@ struct ImageSelectionView: View {
         .background(Color(.systemGray6))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .accessibilityLabel("No image selected. Use buttons below to select an image")
+    }
+
+    // MARK: - Overlay Controls
+
+    private var overlayControls: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Toggle("Show Overlay", isOn: $showOverlay)
+                    .font(.subheadline)
+                Spacer()
+            }
+
+            if showOverlay {
+                VStack(spacing: 8) {
+                    HStack {
+                        Text("Opacity")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Slider(value: $overlayOpacity, in: 0...1)
+                        Text("\(Int(overlayOpacity * 100))%")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 40, alignment: .trailing)
+                    }
+
+                    HStack {
+                        Text("Tint")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        ColorPicker("Overlay Color", selection: $overlayTint)
+                            .labelsHidden()
+                        Spacer()
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .background(Color(.systemGray6))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 

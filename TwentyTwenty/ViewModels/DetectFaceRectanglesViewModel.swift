@@ -19,6 +19,14 @@ final class DetectFaceRectanglesViewModel: BaseModelDetailViewModel {
         [.people]
     }
 
+    var overlayImage: UIImage? {
+        guard !detectedFaces.isEmpty,
+              let image = selectedImage else {
+            return nil
+        }
+        return generateFaceOverlay(for: image)
+    }
+
     // MARK: - Model-Specific State
 
     /// Detected faces from the last analysis
@@ -85,6 +93,15 @@ final class DetectFaceRectanglesViewModel: BaseModelDetailViewModel {
         return results.enumerated().map { index, observation in
             DetectedFace(from: observation, index: index, imageSize: image.size)
         }
+    }
+
+    private func generateFaceOverlay(for image: UIImage) -> UIImage {
+        let rectangles = detectedFaces.map { face in
+            let label = String(format: "%.0f%%", face.confidence * 100)
+            return (rect: face.boundingBox, label: label)
+        }
+
+        return OverlayRenderer.renderRectangles(rectangles, imageSize: image.size)
     }
 }
 

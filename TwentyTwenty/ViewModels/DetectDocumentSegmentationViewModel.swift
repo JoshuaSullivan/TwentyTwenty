@@ -19,6 +19,14 @@ final class DetectDocumentSegmentationViewModel: BaseModelDetailViewModel {
         [.documents]
     }
 
+    var overlayImage: UIImage? {
+        guard !detectedDocuments.isEmpty,
+              let image = selectedImage else {
+            return nil
+        }
+        return generateDocumentOverlay(for: image)
+    }
+
     // MARK: - Model-Specific State
 
     /// Detected documents from the last analysis
@@ -85,6 +93,15 @@ final class DetectDocumentSegmentationViewModel: BaseModelDetailViewModel {
         return results.enumerated().map { index, observation in
             DetectedDocument(from: observation, index: index, imageSize: image.size)
         }
+    }
+
+    private func generateDocumentOverlay(for image: UIImage) -> UIImage {
+        let rectangles = detectedDocuments.map { document in
+            let label = String(format: "%.0f%%", document.confidence * 100)
+            return (rect: document.boundingBox, label: label)
+        }
+
+        return OverlayRenderer.renderRectangles(rectangles, imageSize: image.size)
     }
 }
 
