@@ -42,22 +42,20 @@ struct ImageSelectionView: View {
 
             // MARK: - Image Source Buttons
 
-            HStack(spacing: 12) {
-                Button {
+            HStack(spacing: 16) {
+                ImageSourceButton(
+                    icon: "photo.stack",
+                    label: "Samples",
+                    accessibilityLabel: "Select from bundled sample images"
+                ) {
                     showingBundledImagePicker = true
-                } label: {
-                    Label("Bundled Images", systemImage: "photo.stack")
-                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.bordered)
-                .accessibilityLabel("Select from bundled sample images")
 
                 PhotosPicker(
                     selection: $selectedPhotoItem,
                     matching: .images
                 ) {
-                    Label("Photo Library", systemImage: "photo.on.rectangle")
-                        .frame(maxWidth: .infinity)
+                    ImageSourceButtonLabel(icon: "photo.on.rectangle", label: "Library")
                 }
                 .buttonStyle(.bordered)
                 .onChange(of: selectedPhotoItem) { _, newValue in
@@ -70,14 +68,13 @@ struct ImageSelectionView: View {
                 }
                 .accessibilityLabel("Select from photo library")
 
-                Button {
+                ImageSourceButton(
+                    icon: "camera",
+                    label: "Camera",
+                    accessibilityLabel: "Take photo with camera"
+                ) {
                     showingCameraPicker = true
-                } label: {
-                    Label("Camera", systemImage: "camera")
-                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.bordered)
-                .accessibilityLabel("Take photo with camera")
             }
         }
         .sheet(isPresented: $showingBundledImagePicker) {
@@ -213,6 +210,40 @@ struct BundledImageCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(bundledImage.name): \(bundledImage.description)")
+    }
+}
+
+// MARK: - Image Source Button
+
+/// Reusable button for image source selection with icon and label
+struct ImageSourceButton: View {
+    let icon: String
+    let label: String
+    let accessibilityLabel: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ImageSourceButtonLabel(icon: icon, label: label)
+        }
+        .buttonStyle(.bordered)
+        .accessibilityLabel(accessibilityLabel)
+    }
+}
+
+/// Label for image source buttons (icon above text)
+struct ImageSourceButtonLabel: View {
+    let icon: String
+    let label: String
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title2)
+            Text(label)
+                .font(.caption)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
