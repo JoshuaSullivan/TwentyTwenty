@@ -73,16 +73,10 @@ final class GenerateImageFeaturePrintViewModel: BaseModelDetailViewModel {
             throw VisionError.invalidImage
         }
 
-        let request = VNGenerateImageFeaturePrintRequest()
+        let request = GenerateImageFeaturePrintRequest()
+        let observations = try await request.perform(on: cgImage, orientation: nil)
 
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try handler.perform([request])
-
-        guard let results = request.results else {
-            return []
-        }
-
-        return results.enumerated().map { index, observation in
+        return observations.enumerated().map { index, observation in
             ImageFeaturePrint(from: observation, index: index)
         }
     }
@@ -98,7 +92,7 @@ struct ImageFeaturePrint: Identifiable {
     let elementCount: Int
     let elementType: String
 
-    init(from observation: VNFeaturePrintObservation, index: Int) {
+    init(from observation: FeaturePrintObservation, index: Int) {
         self.index = index
         self.confidence = observation.confidence
         self.elementCount = observation.elementCount

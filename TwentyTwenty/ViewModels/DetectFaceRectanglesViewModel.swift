@@ -81,16 +81,10 @@ final class DetectFaceRectanglesViewModel: BaseModelDetailViewModel {
             throw VisionError.invalidImage
         }
 
-        let request = VNDetectFaceRectanglesRequest()
+        let request = DetectFaceRectanglesRequest()
+        let observations = try await request.perform(on: cgImage, orientation: nil)
 
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try handler.perform([request])
-
-        guard let results = request.results else {
-            return []
-        }
-
-        return results.enumerated().map { index, observation in
+        return observations.enumerated().map { index, observation in
             DetectedFace(from: observation, index: index, imageSize: image.size)
         }
     }
@@ -114,17 +108,11 @@ struct DetectedFace: Identifiable {
     let confidence: Float
     let boundingBox: CGRect
 
-    init(from observation: VNFaceObservation, index: Int, imageSize: CGSize) {
+    init(from observation: FaceObservation, index: Int, imageSize: CGSize) {
         self.index = index
         self.confidence = observation.confidence
 
         // Convert normalized coordinates to image coordinates
-        let box = observation.boundingBox
-        self.boundingBox = CGRect(
-            x: box.origin.x * imageSize.width,
-            y: (1 - box.origin.y - box.height) * imageSize.height,
-            width: box.width * imageSize.width,
-            height: box.height * imageSize.height
-        )
+        self.boundingBox = observation.boundingBox.toImageCoordinates(imageSize)
     }
 }

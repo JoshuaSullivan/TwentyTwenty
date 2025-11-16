@@ -81,16 +81,10 @@ final class RecognizeAnimalsViewModel: BaseModelDetailViewModel {
             throw VisionError.invalidImage
         }
 
-        let request = VNRecognizeAnimalsRequest()
+        let request = RecognizeAnimalsRequest()
+        let observations = try await request.perform(on: cgImage, orientation: nil)
 
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try handler.perform([request])
-
-        guard let results = request.results else {
-            return []
-        }
-
-        return results.enumerated().map { index, observation in
+        return observations.enumerated().map { index, observation in
             RecognizedAnimal(from: observation, index: index, imageSize: image.size)
         }
     }
@@ -115,18 +109,12 @@ struct RecognizedAnimal: Identifiable {
     let boundingBox: CGRect
     let labels: [AnimalLabel]
 
-    init(from observation: VNRecognizedObjectObservation, index: Int, imageSize: CGSize) {
+    init(from observation: RecognizedObjectObservation, index: Int, imageSize: CGSize) {
         self.index = index
         self.confidence = observation.confidence
 
         // Convert normalized coordinates to image coordinates
-        let box = observation.boundingBox
-        self.boundingBox = CGRect(
-            x: box.origin.x * imageSize.width,
-            y: (1 - box.origin.y - box.height) * imageSize.height,
-            width: box.width * imageSize.width,
-            height: box.height * imageSize.height
-        )
+        self.boundingBox = observation.boundingBox.toImageCoordinates(imageSize)
 
         // Extract labels from the observation
         self.labels = observation.labels.map { label in

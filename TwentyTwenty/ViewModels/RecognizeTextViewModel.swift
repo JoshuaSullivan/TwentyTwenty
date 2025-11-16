@@ -33,7 +33,7 @@ final class RecognizeTextViewModel: BaseModelDetailViewModel {
     var recognizedTexts: [RecognizedText] = []
 
     /// Recognition level (fast vs accurate)
-    var recognitionLevel: VNRequestTextRecognitionLevel = .accurate
+    var recognitionLevel: RecognizeTextRequest.RecognitionLevel = .accurate
 
     // MARK: - Initialization
 
@@ -100,18 +100,13 @@ final class RecognizeTextViewModel: BaseModelDetailViewModel {
             throw VisionError.invalidImage
         }
 
-        let request = VNRecognizeTextRequest()
+        var request = RecognizeTextRequest()
         request.recognitionLevel = recognitionLevel
         request.usesLanguageCorrection = true
 
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try handler.perform([request])
+        let observations = try await request.perform(on: cgImage, orientation: nil)
 
-        guard let results = request.results else {
-            return []
-        }
-
-        return results.compactMap { observation in
+        return observations.compactMap { observation in
             RecognizedText(from: observation, imageSize: image.size)
         }
     }
@@ -126,7 +121,7 @@ struct RecognizedText: Identifiable {
     let confidence: Float
     let boundingBox: CGRect
 
-    init?(from observation: VNRecognizedTextObservation, imageSize: CGSize) {
+    init?(from observation: RecognizedTextObservation, imageSize: CGSize) {
         guard let topCandidate = observation.topCandidates(1).first else {
             return nil
         }
@@ -135,12 +130,6 @@ struct RecognizedText: Identifiable {
         self.confidence = topCandidate.confidence
 
         // Convert normalized coordinates to image coordinates
-        let box = observation.boundingBox
-        self.boundingBox = CGRect(
-            x: box.origin.x * imageSize.width,
-            y: (1 - box.origin.y - box.height) * imageSize.height,
-            width: box.width * imageSize.width,
-            height: box.height * imageSize.height
-        )
+        self.boundingBox = observation.boundingBox.toImageCoordinates(imageSize)
     }
 }

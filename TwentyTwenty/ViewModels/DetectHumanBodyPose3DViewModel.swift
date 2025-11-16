@@ -73,16 +73,10 @@ final class DetectHumanBodyPose3DViewModel: BaseModelDetailViewModel {
             throw VisionError.invalidImage
         }
 
-        let request = VNDetectHumanBodyPose3DRequest()
+        let request = DetectHumanBodyPose3DRequest()
+        let observations = try await request.perform(on: cgImage, orientation: nil)
 
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try handler.perform([request])
-
-        guard let results = request.results else {
-            return []
-        }
-
-        return results.enumerated().compactMap { index, observation in
+        return observations.enumerated().compactMap { index, observation in
             HumanBodyPose3D(from: observation, index: index)
         }
     }
@@ -97,14 +91,14 @@ struct HumanBodyPose3D: Identifiable {
     let confidence: Float
     let joints: [BodyJoint3D]
 
-    init?(from observation: VNHumanBodyPose3DObservation, index: Int) {
+    init?(from observation: HumanBodyPose3DObservation, index: Int) {
         self.index = index
         self.confidence = observation.confidence
 
         var detectedJoints: [BodyJoint3D] = []
 
         // Define all 3D body joint types
-        let jointTypes: [VNHumanBodyPose3DObservation.JointName] = [
+        let jointTypes: [HumanBodyPose3DObservation.JointName] = [
             .root,
             .spine, .centerShoulder, .centerHead, .topHead,
             .leftShoulder, .rightShoulder,
@@ -116,11 +110,11 @@ struct HumanBodyPose3D: Identifiable {
         ]
 
         for jointType in jointTypes {
-            if let point = try? observation.recognizedPoint(jointType) {
+            if let point = try? observation.joint(for: jointType) {
                 let pos = point.localPosition.columns.3
                 if pos.x.isFinite && pos.y.isFinite && pos.z.isFinite {
                     detectedJoints.append(BodyJoint3D(
-                        name: jointType.rawValue.rawValue,
+                        name: jointType.rawValue,
                         position: point.localPosition
                     ))
                 }

@@ -76,16 +76,10 @@ final class ClassifyImageViewModel: BaseModelDetailViewModel {
             throw VisionError.invalidImage
         }
 
-        let request = VNClassifyImageRequest()
+        let request = ClassifyImageRequest()
+        let observations = try await request.perform(on: cgImage, orientation: nil)
 
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try handler.perform([request])
-
-        guard let results = request.results else {
-            return []
-        }
-
-        return results
+        return observations
             .prefix(maxResults)
             .map { ImageClassification(from: $0) }
     }
@@ -99,7 +93,7 @@ struct ImageClassification: Identifiable {
     let identifier: String
     let confidence: Float
 
-    init(from observation: VNClassificationObservation) {
+    init(from observation: ClassificationObservation) {
         self.identifier = observation.identifier
         self.confidence = observation.confidence
     }

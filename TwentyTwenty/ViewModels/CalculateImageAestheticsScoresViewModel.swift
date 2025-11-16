@@ -74,16 +74,10 @@ final class CalculateImageAestheticsScoresViewModel: BaseModelDetailViewModel {
         }
 
         if #available(iOS 18.0, *) {
-            let request = VNCalculateImageAestheticsScoresRequest()
+            let request = CalculateImageAestheticsScoresRequest()
+            let observation = try await request.perform(on: cgImage, orientation: nil)
 
-            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-            try handler.perform([request])
-
-            guard let result = request.results?.first else {
-                return nil
-            }
-
-            return ImageAestheticsScores(from: result)
+            return ImageAestheticsScores(from: observation)
         } else {
             throw VisionError.invalidImage
         }
@@ -96,7 +90,7 @@ final class CalculateImageAestheticsScoresViewModel: BaseModelDetailViewModel {
 struct ImageAestheticsScores {
     let overallScore: Float
 
-    init(from observation: VNImageAestheticsScoresObservation) {
+    init(from observation: ImageAestheticsScoresObservation) {
         self.overallScore = observation.overallScore
     }
 

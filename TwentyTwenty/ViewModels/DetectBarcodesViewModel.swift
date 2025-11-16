@@ -33,7 +33,7 @@ final class DetectBarcodesViewModel: BaseModelDetailViewModel {
     var detectedBarcodes: [DetectedBarcode] = []
 
     /// Selected barcode symbologies to detect
-    var selectedSymbologies: Set<VNBarcodeSymbology> = [
+    var selectedSymbologies: Set<BarcodeSymbology> = [
         .qr,
         .ean13,
         .ean8,
@@ -93,17 +93,12 @@ final class DetectBarcodesViewModel: BaseModelDetailViewModel {
             throw VisionError.invalidImage
         }
 
-        let request = VNDetectBarcodesRequest()
+        var request = DetectBarcodesRequest()
         request.symbologies = Array(selectedSymbologies)
 
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try handler.perform([request])
+        let observations = try await request.perform(on: cgImage, orientation: nil)
 
-        guard let results = request.results else {
-            return []
-        }
-
-        return results.compactMap { observation in
+        return observations.compactMap { observation in
             DetectedBarcode(from: observation, imageSize: image.size)
         }
     }
@@ -123,24 +118,18 @@ final class DetectBarcodesViewModel: BaseModelDetailViewModel {
 /// Represents a detected barcode
 struct DetectedBarcode: Identifiable {
     let id = UUID()
-    let symbology: VNBarcodeSymbology
+    let symbology: BarcodeSymbology
     let payloadString: String?
     let confidence: Float
     let boundingBox: CGRect
 
-    init?(from observation: VNBarcodeObservation, imageSize: CGSize) {
+    init?(from observation: BarcodeObservation, imageSize: CGSize) {
         self.symbology = observation.symbology
-        self.payloadString = observation.payloadStringValue
+        self.payloadString = observation.payloadString
         self.confidence = observation.confidence
 
         // Convert normalized coordinates to image coordinates
-        let box = observation.boundingBox
-        self.boundingBox = CGRect(
-            x: box.origin.x * imageSize.width,
-            y: (1 - box.origin.y - box.height) * imageSize.height,
-            width: box.width * imageSize.width,
-            height: box.height * imageSize.height
-        )
+        self.boundingBox = observation.boundingBox.toImageCoordinates(imageSize)
     }
 
     var symbologyName: String {

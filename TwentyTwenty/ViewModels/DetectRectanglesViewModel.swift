@@ -95,19 +95,14 @@ final class DetectRectanglesViewModel: BaseModelDetailViewModel {
             throw VisionError.invalidImage
         }
 
-        let request = VNDetectRectanglesRequest()
-        request.minimumAspectRatio = VNAspectRatio(minimumAspectRatio)
-        request.maximumAspectRatio = VNAspectRatio(maximumAspectRatio)
+        var request = DetectRectanglesRequest()
+        request.minimumAspectRatio = minimumAspectRatio
+        request.maximumAspectRatio = maximumAspectRatio
         request.minimumConfidence = 0.5
 
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try handler.perform([request])
+        let observations = try await request.perform(on: cgImage, orientation: nil)
 
-        guard let results = request.results else {
-            return []
-        }
-
-        return results.enumerated().map { index, observation in
+        return observations.enumerated().map { index, observation in
             DetectedRectangle(from: observation, index: index, imageSize: image.size)
         }
     }
@@ -126,18 +121,12 @@ struct DetectedRectangle: Identifiable {
     let bottomLeft: CGPoint
     let bottomRight: CGPoint
 
-    init(from observation: VNRectangleObservation, index: Int, imageSize: CGSize) {
+    init(from observation: RectangleObservation, index: Int, imageSize: CGSize) {
         self.index = index
         self.confidence = observation.confidence
 
         // Convert normalized coordinates to image coordinates
-        let box = observation.boundingBox
-        self.boundingBox = CGRect(
-            x: box.origin.x * imageSize.width,
-            y: (1 - box.origin.y - box.height) * imageSize.height,
-            width: box.width * imageSize.width,
-            height: box.height * imageSize.height
-        )
+        self.boundingBox = observation.boundingBox.toImageCoordinates(imageSize)
 
         // Convert corner points
         self.topLeft = CGPoint(

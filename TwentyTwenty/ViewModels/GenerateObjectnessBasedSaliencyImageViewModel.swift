@@ -91,16 +91,10 @@ final class GenerateObjectnessBasedSaliencyImageViewModel: BaseModelDetailViewMo
             throw VisionError.invalidImage
         }
 
-        let request = VNGenerateObjectnessBasedSaliencyImageRequest()
+        let request = GenerateObjectnessBasedSaliencyImageRequest()
+        let observations = try await request.perform(on: cgImage, orientation: nil)
 
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try handler.perform([request])
-
-        guard let results = request.results else {
-            return []
-        }
-
-        return results.enumerated().map { index, observation in
+        return observations.enumerated().map { index, observation in
             ObjectnessSaliency(from: observation, index: index, imageSize: image.size)
         }
     }
@@ -115,7 +109,7 @@ struct ObjectnessSaliency: Identifiable {
     let confidence: Float
     let salientObjects: [SalientObject]
 
-    init(from observation: VNSaliencyImageObservation, index: Int, imageSize: CGSize) {
+    init(from observation: SaliencyImageObservation, index: Int, imageSize: CGSize) {
         self.index = index
         self.confidence = observation.confidence
 
@@ -123,8 +117,8 @@ struct ObjectnessSaliency: Identifiable {
         self.salientObjects = (observation.salientObjects ?? []).enumerated().map { objIndex, object in
             let box = object.boundingBox
             let boundingBox = CGRect(
-                x: box.origin.x * imageSize.width,
-                y: (1 - box.origin.y - box.height) * imageSize.height,
+                x: box.minX * imageSize.width,
+                y: (1 - box.maxY) * imageSize.height,
                 width: box.width * imageSize.width,
                 height: box.height * imageSize.height
             )

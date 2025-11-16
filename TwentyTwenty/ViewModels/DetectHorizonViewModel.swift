@@ -85,12 +85,10 @@ final class DetectHorizonViewModel: BaseModelDetailViewModel {
             throw VisionError.invalidImage
         }
 
-        let request = VNDetectHorizonRequest()
+        let request = DetectHorizonRequest()
+        let observation = try await request.perform(on: cgImage, orientation: nil)
 
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try handler.perform([request])
-
-        guard let result = request.results?.first else {
+        guard let result = observation else {
             return nil
         }
 
@@ -105,8 +103,8 @@ struct DetectedHorizon {
     let angle: Double
     let transform: CGAffineTransform
 
-    init(from observation: VNHorizonObservation, imageSize: CGSize) {
-        self.angle = observation.angle
+    init(from observation: HorizonObservation, imageSize: CGSize) {
+        self.angle = observation.angle.value
         self.transform = observation.transform
     }
 

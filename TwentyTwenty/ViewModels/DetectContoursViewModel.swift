@@ -90,17 +90,12 @@ final class DetectContoursViewModel: BaseModelDetailViewModel {
             throw VisionError.invalidImage
         }
 
-        let request = VNDetectContoursRequest()
+        var request = DetectContoursRequest()
         request.contrastAdjustment = contrastThreshold
 
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try handler.perform([request])
+        let observations = try await request.perform(on: cgImage, orientation: nil)
 
-        guard let results = request.results else {
-            return []
-        }
-
-        return results.enumerated().compactMap { index, observation in
+        return observations.enumerated().compactMap { index, observation in
             DetectedContour(from: observation, index: index)
         }
     }
@@ -116,9 +111,9 @@ struct DetectedContour: Identifiable {
     let pointCount: Int
     let childContourCount: Int
     let aspectRatio: Float
-    let contours: [VNContour]
+    let contours: [Contour]
 
-    init?(from observation: VNContoursObservation, index: Int) {
+    init?(from observation: ContoursObservation, index: Int) {
         self.index = index
         self.confidence = observation.confidence
 

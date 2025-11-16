@@ -78,16 +78,10 @@ final class GeneratePersonInstanceMaskViewModel: BaseModelDetailViewModel {
             throw VisionError.invalidImage
         }
 
-        let request = VNGeneratePersonInstanceMaskRequest()
+        let request = GeneratePersonInstanceMaskRequest()
+        let observations = try await request.perform(on: cgImage, orientation: nil)
 
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try handler.perform([request])
-
-        guard let results = request.results else {
-            return []
-        }
-
-        return results.enumerated().map { index, observation in
+        return observations.enumerated().map { index, observation in
             PersonInstance(from: observation, index: index)
         }
     }
@@ -102,7 +96,7 @@ struct PersonInstance: Identifiable {
     let confidence: Float
     let instanceCount: Int
 
-    init(from observation: VNInstanceMaskObservation, index: Int) {
+    init(from observation: InstanceMaskObservation, index: Int) {
         self.index = index
         self.confidence = observation.confidence
 

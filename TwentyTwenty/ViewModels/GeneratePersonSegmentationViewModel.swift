@@ -34,7 +34,7 @@ final class GeneratePersonSegmentationViewModel: BaseModelDetailViewModel {
     var segmentationResults: [PersonSegmentation] = []
 
     /// Quality level for segmentation (accurate vs. balanced)
-    var qualityLevel: VNGeneratePersonSegmentationRequest.QualityLevel = .balanced
+    var qualityLevel: GeneratePersonSegmentationRequest.QualityLevel = .balanced
 
     // MARK: - Initialization
 
@@ -85,17 +85,12 @@ final class GeneratePersonSegmentationViewModel: BaseModelDetailViewModel {
             throw VisionError.invalidImage
         }
 
-        let request = VNGeneratePersonSegmentationRequest()
+        var request = GeneratePersonSegmentationRequest()
         request.qualityLevel = qualityLevel
 
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try handler.perform([request])
+        let observations = try await request.perform(on: cgImage, orientation: nil)
 
-        guard let results = request.results else {
-            return []
-        }
-
-        return results.enumerated().map { index, observation in
+        return observations.enumerated().map { index, observation in
             PersonSegmentation(from: observation, index: index)
         }
     }
@@ -110,7 +105,7 @@ struct PersonSegmentation: Identifiable {
     let confidence: Float
     let pixelBuffer: CVPixelBuffer
 
-    init(from observation: VNPixelBufferObservation, index: Int) {
+    init(from observation: PixelBufferObservation, index: Int) {
         self.index = index
         self.confidence = observation.confidence
         self.pixelBuffer = observation.pixelBuffer
