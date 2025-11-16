@@ -176,8 +176,8 @@ struct AnimalBodyPose: Identifiable {
 
         var detectedJoints: [AnimalJoint] = []
 
-        // Get all recognized points using the animal body pose specific joint group
-        if let allPoints = try? observation.recognizedPoints(VNAnimalBodyPoseObservation.JointsGroupName.all) {
+        // Get all recognized points using the modern API with type inference
+        if let allPoints = try? observation.recognizedPoints(.all) {
             for (jointName, point) in allPoints {
                 if point.confidence > 0.1 {
                     detectedJoints.append(AnimalJoint(

@@ -170,8 +170,8 @@ struct HumanBodyPose: Identifiable {
 
         var detectedJoints: [BodyJoint] = []
 
-        // Get all recognized points using the human body pose specific joint group
-        if let allPoints = try? observation.recognizedPoints(VNHumanBodyPoseObservation.JointsGroupName.all) {
+        // Get all recognized points using the modern API with type inference
+        if let allPoints = try? observation.recognizedPoints(.all) {
             for (jointName, point) in allPoints {
                 if point.confidence > 0.1 {
                     detectedJoints.append(BodyJoint(

@@ -174,8 +174,8 @@ struct HumanHandPose: Identifiable {
 
         var detectedJoints: [HandJoint] = []
 
-        // Get all recognized points using the human hand pose specific joint group
-        if let allPoints = try? observation.recognizedPoints(VNHumanHandPoseObservation.JointsGroupName.all) {
+        // Get all recognized points using the modern API with type inference
+        if let allPoints = try? observation.recognizedPoints(.all) {
             for (jointName, point) in allPoints {
                 if point.confidence > 0.1 {
                     detectedJoints.append(HandJoint(
