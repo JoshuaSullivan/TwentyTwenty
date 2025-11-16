@@ -90,7 +90,7 @@ final class DetectAnimalBodyPoseViewModel: BaseModelDetailViewModel {
     }
 
     private func generatePoseOverlay(for image: UIImage) -> UIImage {
-        let poses = detectedPoses.map { pose -> (joints: [CGPoint], connections: [(Int, Int)]) in
+        let poses = detectedPoses.map { pose -> (joints: [CGPoint], groups: [OverlayRenderer.JointGroup]) in
             // Create a dictionary mapping joint names (rawValue strings) to indices
             var jointMap: [String: Int] = [:]
             let jointPoints = pose.joints.enumerated().map { index, joint -> CGPoint in
@@ -98,55 +98,85 @@ final class DetectAnimalBodyPoseViewModel: BaseModelDetailViewModel {
                 return joint.position
             }
 
-            // Define skeleton connections using modern API enum rawValues
-            var connections: [(Int, Int)] = []
-            let connectionPairs: [(String, String)] = [
-                // Ears (outer to inner)
+            // Define color scheme by body part
+            // Head: Purple, Trunk: Blue, Front Left Leg: Green, Front Right Leg: Cyan
+            // Rear Left Leg: Orange, Rear Right Leg: Red, Tail: Yellow
+            var jointGroups: [OverlayRenderer.JointGroup] = []
+
+            // Head (purple)
+            let headConnections: [(String, String)] = [
                 ("leftEarTop", "leftEarMiddle"),
                 ("leftEarMiddle", "leftEarBottom"),
                 ("rightEarTop", "rightEarMiddle"),
                 ("rightEarMiddle", "rightEarBottom"),
-                // Head - ears to eyes
                 ("leftEarBottom", "leftEye"),
                 ("rightEarBottom", "rightEye"),
-                // Head - eyes to nose
                 ("leftEye", "nose"),
-                ("rightEye", "nose"),
-                // Nose to neck
-                ("nose", "neck"),
-                // Front left leg
+                ("rightEye", "nose")
+            ]
+            jointGroups.append(createJointGroup(from: headConnections, color: UIColor.systemPurple, jointMap: jointMap))
+
+            // Trunk/Body - neck (blue)
+            let trunkConnections: [(String, String)] = [
+                ("nose", "neck")
+            ]
+            jointGroups.append(createJointGroup(from: trunkConnections, color: UIColor.systemBlue, jointMap: jointMap))
+
+            // Front left leg (green)
+            let frontLeftLegConnections: [(String, String)] = [
                 ("neck", "leftFrontElbow"),
                 ("leftFrontElbow", "leftFrontKnee"),
-                ("leftFrontKnee", "leftFrontPaw"),
-                // Front right leg
+                ("leftFrontKnee", "leftFrontPaw")
+            ]
+            jointGroups.append(createJointGroup(from: frontLeftLegConnections, color: UIColor.systemGreen, jointMap: jointMap))
+
+            // Front right leg (cyan)
+            let frontRightLegConnections: [(String, String)] = [
                 ("neck", "rightFrontElbow"),
                 ("rightFrontElbow", "rightFrontKnee"),
-                ("rightFrontKnee", "rightFrontPaw"),
-                // Back left leg
+                ("rightFrontKnee", "rightFrontPaw")
+            ]
+            jointGroups.append(createJointGroup(from: frontRightLegConnections, color: UIColor.systemCyan, jointMap: jointMap))
+
+            // Rear left leg (orange)
+            let rearLeftLegConnections: [(String, String)] = [
                 ("neck", "leftBackElbow"),
                 ("leftBackElbow", "leftBackKnee"),
-                ("leftBackKnee", "leftBackPaw"),
-                // Back right leg
+                ("leftBackKnee", "leftBackPaw")
+            ]
+            jointGroups.append(createJointGroup(from: rearLeftLegConnections, color: UIColor.systemOrange, jointMap: jointMap))
+
+            // Rear right leg (red)
+            let rearRightLegConnections: [(String, String)] = [
                 ("neck", "rightBackElbow"),
                 ("rightBackElbow", "rightBackKnee"),
-                ("rightBackKnee", "rightBackPaw"),
-                // Tail
+                ("rightBackKnee", "rightBackPaw")
+            ]
+            jointGroups.append(createJointGroup(from: rearRightLegConnections, color: UIColor.systemRed, jointMap: jointMap))
+
+            // Tail (yellow)
+            let tailConnections: [(String, String)] = [
                 ("neck", "tailTop"),
                 ("tailTop", "tailMiddle"),
                 ("tailMiddle", "tailBottom")
             ]
+            jointGroups.append(createJointGroup(from: tailConnections, color: UIColor.systemYellow, jointMap: jointMap))
 
-            for (from, to) in connectionPairs {
-                if let fromIndex = jointMap[from],
-                   let toIndex = jointMap[to] {
-                    connections.append((fromIndex, toIndex))
-                }
-            }
-
-            return (joints: jointPoints, connections: connections)
+            return (joints: jointPoints, groups: jointGroups)
         }
 
         return OverlayRenderer.renderPoseSkeletons(poses, imageSize: image.size)
+    }
+
+    private func createJointGroup(from pairs: [(String, String)], color: UIColor, jointMap: [String: Int]) -> OverlayRenderer.JointGroup {
+        var connections: [(Int, Int)] = []
+        for (from, to) in pairs {
+            if let fromIndex = jointMap[from],
+               let toIndex = jointMap[to] {
+                connections.append((fromIndex, toIndex))
+            }
+        }
+        return OverlayRenderer.JointGroup(connections: connections, color: color)
     }
 }
 

@@ -38,56 +38,77 @@ enum OverlayRenderer {
 
     // MARK: - Pose Skeleton Overlays
 
-    /// Renders pose skeletons with joints and connections
+    /// Represents a group of joints with a specific color
+    struct JointGroup {
+        let connections: [(Int, Int)]
+        let color: UIColor
+    }
+
+    /// Renders pose skeletons with colored joint groups
     /// - Parameters:
-    ///   - poses: Array of poses with joint points and connections
+    ///   - poses: Array of poses with joint points and colored joint groups
     ///   - imageSize: Size of the image to render on
     /// - Returns: UIImage containing the rendered overlay
     static func renderPoseSkeletons(
-        _ poses: [(joints: [CGPoint], connections: [(Int, Int)])],
+        _ poses: [(joints: [CGPoint], groups: [JointGroup])],
         imageSize: CGSize
     ) -> UIImage {
         let renderer = UIGraphicsImageRenderer(size: imageSize)
 
         // Scale sizes based on image dimensions
         let maxDimension = max(imageSize.width, imageSize.height)
-        let jointRadius = maxDimension * 0.009  // 0.9% of largest dimension (40% smaller)
-        let lineWidth = maxDimension * 0.005    // 0.5% of largest dimension (40% smaller)
+        let jointRadius = maxDimension * 0.009  // 0.9% of largest dimension
+        let lineWidth = maxDimension * 0.005    // 0.5% of largest dimension
 
         return renderer.image { context in
             let ctx = context.cgContext
 
             for pose in poses {
-                // Draw connections (lines between joints)
-                ctx.setStrokeColor(UIColor.white.cgColor)
+                // Draw connections by group (each group has its own color)
                 ctx.setLineWidth(lineWidth)
                 ctx.setLineCap(.round)
 
-                for (fromIndex, toIndex) in pose.connections {
-                    guard fromIndex < pose.joints.count,
-                          toIndex < pose.joints.count else {
-                        continue
+                for group in pose.groups {
+                    ctx.setStrokeColor(group.color.cgColor)
+
+                    for (fromIndex, toIndex) in group.connections {
+                        guard fromIndex < pose.joints.count,
+                              toIndex < pose.joints.count else {
+                            continue
+                        }
+
+                        let fromPoint = pose.joints[fromIndex]
+                        let toPoint = pose.joints[toIndex]
+
+                        ctx.move(to: fromPoint)
+                        ctx.addLine(to: toPoint)
+                    }
+                    ctx.strokePath()
+                }
+
+                // Draw joints (circles at each point) - use same color as their group
+                for group in pose.groups {
+                    ctx.setFillColor(group.color.cgColor)
+
+                    // Get unique joints from this group's connections
+                    var groupJointIndices = Set<Int>()
+                    for (from, to) in group.connections {
+                        groupJointIndices.insert(from)
+                        groupJointIndices.insert(to)
                     }
 
-                    let fromPoint = pose.joints[fromIndex]
-                    let toPoint = pose.joints[toIndex]
+                    for jointIndex in groupJointIndices {
+                        guard jointIndex < pose.joints.count else { continue }
+                        let joint = pose.joints[jointIndex]
 
-                    ctx.move(to: fromPoint)
-                    ctx.addLine(to: toPoint)
-                }
-                ctx.strokePath()
-
-                // Draw joints (circles at each point)
-                ctx.setFillColor(UIColor.white.cgColor)
-
-                for joint in pose.joints {
-                    let rect = CGRect(
-                        x: joint.x - jointRadius,
-                        y: joint.y - jointRadius,
-                        width: jointRadius * 2,
-                        height: jointRadius * 2
-                    )
-                    ctx.fillEllipse(in: rect)
+                        let rect = CGRect(
+                            x: joint.x - jointRadius,
+                            y: joint.y - jointRadius,
+                            width: jointRadius * 2,
+                            height: jointRadius * 2
+                        )
+                        ctx.fillEllipse(in: rect)
+                    }
                 }
             }
         }
@@ -145,7 +166,7 @@ enum OverlayRenderer {
     ///   - imageSize: Size of the image to render on
     /// - Returns: UIImage containing the rendered overlay
     static func renderContours(
-        _ contours: [VNContour],
+        _ contours: [ContoursObservation.Contour],
         imageSize: CGSize
     ) -> UIImage {
         let renderer = UIGraphicsImageRenderer(size: imageSize)
@@ -175,7 +196,7 @@ enum OverlayRenderer {
     ///   - imageSize: Size of the image to render on
     /// - Returns: UIImage containing the rendered overlay
     static func renderFaceLandmarks(
-        _ landmarks: VNFaceLandmarks2D,
+        _ landmarks: FaceObservation.Landmarks2D,
         boundingBox: CGRect,
         imageSize: CGSize
     ) -> UIImage {
@@ -195,7 +216,7 @@ enum OverlayRenderer {
             ctx.setLineCap(.round)
             ctx.setLineJoin(.round)
 
-            let landmarkRegions: [VNFaceLandmarkRegion2D?] = [
+            let landmarkRegions: [FaceObservation.Landmarks2D.Region] = [
                 landmarks.faceContour,
                 landmarks.leftEye,
                 landmarks.rightEye,
@@ -207,15 +228,15 @@ enum OverlayRenderer {
                 landmarks.innerLips
             ]
 
-            for region in landmarkRegions.compactMap({ $0 }) {
+            for region in landmarkRegions.filter({ !$0.points.isEmpty }) {
                 drawLandmarkRegion(region, boundingBox: boundingBox, imageSize: imageSize, in: ctx)
             }
 
             // Draw individual points
             ctx.setFillColor(UIColor.white.cgColor)
 
-            for region in landmarkRegions.compactMap({ $0 }) {
-                for point in region.normalizedPoints {
+            for region in landmarkRegions.filter({ !$0.points.isEmpty }) {
+                for point in region.points {
                     let imagePoint = convertLandmarkPoint(point, boundingBox: boundingBox, imageSize: imageSize)
                     let rect = CGRect(
                         x: imagePoint.x - pointRadius,
@@ -258,7 +279,7 @@ enum OverlayRenderer {
     // MARK: - Private Helpers
 
     /// Draws a contour path
-    private static func drawContourPath(_ contour: VNContour, imageSize: CGSize, in ctx: CGContext) {
+    private static func drawContourPath(_ contour: ContoursObservation.Contour, imageSize: CGSize, in ctx: CGContext) {
         let points = contour.normalizedPoints
 
         guard !points.isEmpty else { return }
@@ -287,12 +308,12 @@ enum OverlayRenderer {
 
     /// Draws a landmark region (connected points)
     private static func drawLandmarkRegion(
-        _ region: VNFaceLandmarkRegion2D,
+        _ region: FaceObservation.Landmarks2D.Region,
         boundingBox: CGRect,
         imageSize: CGSize,
         in ctx: CGContext
     ) {
-        let points = region.normalizedPoints
+        let points = region.points
 
         guard points.count > 1 else { return }
 
@@ -309,14 +330,15 @@ enum OverlayRenderer {
 
     /// Converts a normalized landmark point to image coordinates
     private static func convertLandmarkPoint(
-        _ point: CGPoint,
+        _ point: NormalizedPoint,
         boundingBox: CGRect,
         imageSize: CGSize
     ) -> CGPoint {
         // Landmark points are relative to the face bounding box
         // First convert to bounding box coordinates, then to image coordinates
-        let x = boundingBox.origin.x + point.x * boundingBox.width
-        let y = boundingBox.origin.y + (1 - point.y) * boundingBox.height
+        let cgPoint = point.cgPoint
+        let x = boundingBox.origin.x + cgPoint.x * boundingBox.width
+        let y = boundingBox.origin.y + (1 - cgPoint.y) * boundingBox.height
 
         return CGPoint(x: x, y: y)
     }

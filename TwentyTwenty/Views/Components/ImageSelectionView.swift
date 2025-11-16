@@ -15,7 +15,6 @@ struct ImageSelectionView: View {
     /// State for overlay display
     @State private var showOverlay = true
     @State private var overlayOpacity = 0.7
-    @State private var overlayTint = Color.green
 
     /// State for presenting image pickers
     @State private var showingBundledImagePicker = false
@@ -49,7 +48,6 @@ struct ImageSelectionView: View {
                             Image(uiImage: overlay)
                                 .resizable()
                                 .scaledToFit()
-                                .colorMultiply(overlayTint)
                                 .opacity(overlayOpacity)
                         }
                     }
@@ -151,26 +149,15 @@ struct ImageSelectionView: View {
             }
 
             if showOverlay {
-                VStack(spacing: 8) {
-                    HStack {
-                        Text("Opacity")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Slider(value: $overlayOpacity, in: 0...1)
-                        Text("\(Int(overlayOpacity * 100))%")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 40, alignment: .trailing)
-                    }
-
-                    HStack {
-                        Text("Tint")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        ColorPicker("Overlay Color", selection: $overlayTint)
-                            .labelsHidden()
-                        Spacer()
-                    }
+                HStack {
+                    Text("Opacity")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Slider(value: $overlayOpacity, in: 0...1)
+                    Text("\(Int(overlayOpacity * 100))%")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 40, alignment: .trailing)
                 }
             }
         }

@@ -69,7 +69,7 @@ struct HandPoseCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: "circle.grid.cross")
                         .foregroundStyle(.green)
-                    Text("\(hand.jointsByFinger.count) fingers")
+                    Text("\(hand.fingerCount) fingers")
                         .font(.subheadline)
                 }
             }

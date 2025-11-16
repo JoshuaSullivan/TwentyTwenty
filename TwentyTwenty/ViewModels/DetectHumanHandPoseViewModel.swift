@@ -96,7 +96,7 @@ final class DetectHumanHandPoseViewModel: BaseModelDetailViewModel {
     }
 
     private func generateHandPoseOverlay(for image: UIImage) -> UIImage {
-        let poses = detectedHands.map { hand -> (joints: [CGPoint], connections: [(Int, Int)]) in
+        let poses = detectedHands.map { hand -> (joints: [CGPoint], groups: [OverlayRenderer.JointGroup]) in
             // Create a dictionary mapping joint names (rawValue strings) to indices
             var jointMap: [String: Int] = [:]
             let jointPoints = hand.joints.enumerated().map { index, joint -> CGPoint in
@@ -104,47 +104,70 @@ final class DetectHumanHandPoseViewModel: BaseModelDetailViewModel {
                 return joint.position
             }
 
-            // Define skeleton connections using modern API enum rawValues
-            var connections: [(Int, Int)] = []
-            let connectionPairs: [(String, String)] = [
-                // Thumb
+            // Define color scheme for each finger
+            // Thumb: Red, Index: Orange, Middle: Yellow, Ring: Green, Little: Blue
+            var jointGroups: [OverlayRenderer.JointGroup] = []
+
+            // Thumb (red)
+            let thumbConnections: [(String, String)] = [
                 ("wrist", "thumbCMC"),
                 ("thumbCMC", "thumbMP"),
                 ("thumbMP", "thumbIP"),
-                ("thumbIP", "thumbTip"),
-                // Index finger
+                ("thumbIP", "thumbTip")
+            ]
+            jointGroups.append(createJointGroup(from: thumbConnections, color: UIColor.systemRed, jointMap: jointMap))
+
+            // Index finger (orange)
+            let indexConnections: [(String, String)] = [
                 ("wrist", "indexMCP"),
                 ("indexMCP", "indexPIP"),
                 ("indexPIP", "indexDIP"),
-                ("indexDIP", "indexTip"),
-                // Middle finger
+                ("indexDIP", "indexTip")
+            ]
+            jointGroups.append(createJointGroup(from: indexConnections, color: UIColor.systemOrange, jointMap: jointMap))
+
+            // Middle finger (yellow)
+            let middleConnections: [(String, String)] = [
                 ("wrist", "middleMCP"),
                 ("middleMCP", "middlePIP"),
                 ("middlePIP", "middleDIP"),
-                ("middleDIP", "middleTip"),
-                // Ring finger
+                ("middleDIP", "middleTip")
+            ]
+            jointGroups.append(createJointGroup(from: middleConnections, color: UIColor.systemYellow, jointMap: jointMap))
+
+            // Ring finger (green)
+            let ringConnections: [(String, String)] = [
                 ("wrist", "ringMCP"),
                 ("ringMCP", "ringPIP"),
                 ("ringPIP", "ringDIP"),
-                ("ringDIP", "ringTip"),
-                // Little finger
+                ("ringDIP", "ringTip")
+            ]
+            jointGroups.append(createJointGroup(from: ringConnections, color: UIColor.systemGreen, jointMap: jointMap))
+
+            // Little finger (blue)
+            let littleConnections: [(String, String)] = [
                 ("wrist", "littleMCP"),
                 ("littleMCP", "littlePIP"),
                 ("littlePIP", "littleDIP"),
                 ("littleDIP", "littleTip")
             ]
+            jointGroups.append(createJointGroup(from: littleConnections, color: UIColor.systemBlue, jointMap: jointMap))
 
-            for (from, to) in connectionPairs {
-                if let fromIndex = jointMap[from],
-                   let toIndex = jointMap[to] {
-                    connections.append((fromIndex, toIndex))
-                }
-            }
-
-            return (joints: jointPoints, connections: connections)
+            return (joints: jointPoints, groups: jointGroups)
         }
 
         return OverlayRenderer.renderPoseSkeletons(poses, imageSize: image.size)
+    }
+
+    private func createJointGroup(from pairs: [(String, String)], color: UIColor, jointMap: [String: Int]) -> OverlayRenderer.JointGroup {
+        var connections: [(Int, Int)] = []
+        for (from, to) in pairs {
+            if let fromIndex = jointMap[from],
+               let toIndex = jointMap[to] {
+                connections.append((fromIndex, toIndex))
+            }
+        }
+        return OverlayRenderer.JointGroup(connections: connections, color: color)
     }
 }
 
@@ -198,6 +221,11 @@ struct HumanHandPose: Identifiable {
         case .right:
             return "Right Hand"
         }
+    }
+
+    /// Number of fingers (excluding wrist)
+    var fingerCount: Int {
+        jointsByFinger.keys.filter { $0 != "Wrist" }.count
     }
 
     /// Joints grouped by finger
