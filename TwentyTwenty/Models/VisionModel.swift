@@ -41,6 +41,7 @@ enum VisionRequestType: String {
     case detectFaceCaptureQuality
     case detectHumanBodyPose
     case detectHumanBodyPose3D
+    case detectHumanHandPose
     case detectAnimalBodyPose
     case detectHumanRectangles
     case detectRectangles

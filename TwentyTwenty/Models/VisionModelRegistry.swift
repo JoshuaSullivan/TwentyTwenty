@@ -61,6 +61,15 @@ struct VisionModelRegistry {
         ),
 
         VisionModel(
+            id: "detect-human-hand-pose",
+            name: "Detect Human Hand Pose",
+            minimumIOSVersion: 14.0,
+            description: "Identifies hand joint positions including fingers and palm landmarks",
+            category: .detection,
+            requestType: .detectHumanHandPose
+        ),
+
+        VisionModel(
             id: "detect-animal-body-pose",
             name: "Detect Animal Body Pose",
             minimumIOSVersion: 17.0,

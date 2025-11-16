@@ -36,6 +36,9 @@ struct ModelDetailRouter: View {
         case .detectHumanBodyPose:
             DetectHumanBodyPoseView(model: model)
 
+        case .detectHumanHandPose:
+            DetectHumanHandPoseView(model: model)
+
         case .detectHumanRectangles:
             DetectHumanRectanglesView(model: model)
 
