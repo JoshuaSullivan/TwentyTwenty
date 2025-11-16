@@ -242,11 +242,14 @@ struct BundledImageCard: View {
                     ImageManager.loadSwiftUIImage(bundledImage)
                         .resizable()
                         .scaledToFill()
+                        .frame(maxWidth: .infinity)
                         .frame(height: 120)
+                        .clipped()
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 } else {
                     Rectangle()
                         .fill(Color(.systemGray5))
+                        .frame(maxWidth: .infinity)
                         .frame(height: 120)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .overlay {
@@ -266,8 +269,8 @@ struct BundledImageCard: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
             .background(Color(.systemBackground))
             .clipShape(RoundedRectangle(cornerRadius: 12))
