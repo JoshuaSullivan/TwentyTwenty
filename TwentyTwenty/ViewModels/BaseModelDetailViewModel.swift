@@ -26,6 +26,9 @@ protocol BaseModelDetailViewModel: AnyObject, Observable {
     /// Optional overlay image to display on top of the selected image
     var overlayImage: UIImage? { get }
 
+    /// Color for overlay rendering (non-pose overlays)
+    var overlayColor: UIColor { get set }
+
     /// Processes the currently selected image with the Vision model
     func processImage() async
 
@@ -44,6 +47,12 @@ extension BaseModelDetailViewModel {
     /// Default implementation - no overlay
     var overlayImage: UIImage? {
         nil
+    }
+
+    /// Default implementation - green overlay color
+    var overlayColor: UIColor {
+        get { .systemGreen }
+        set { }
     }
 
     /// Default implementation clears error and statistics

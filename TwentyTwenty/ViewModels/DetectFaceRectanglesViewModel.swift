@@ -27,6 +27,8 @@ final class DetectFaceRectanglesViewModel: BaseModelDetailViewModel {
         return generateFaceOverlay(for: image)
     }
 
+    var overlayColor: UIColor = .systemGreen
+
     // MARK: - Model-Specific State
 
     /// Detected faces from the last analysis
@@ -95,7 +97,7 @@ final class DetectFaceRectanglesViewModel: BaseModelDetailViewModel {
             return (rect: face.boundingBox, label: label)
         }
 
-        return OverlayRenderer.renderRectangles(rectangles, imageSize: image.size)
+        return OverlayRenderer.renderRectangles(rectangles, imageSize: image.size, color: overlayColor)
     }
 }
 
@@ -113,6 +115,6 @@ struct DetectedFace: Identifiable {
         self.confidence = observation.confidence
 
         // Convert normalized coordinates to image coordinates
-        self.boundingBox = observation.boundingBox.toImageCoordinates(imageSize)
+        self.boundingBox = observation.boundingBox.toImageCoordinates(imageSize, origin: .upperLeft)
     }
 }

@@ -74,6 +74,20 @@ struct BundledImageRegistry {
             contentTypes: [.people]
         ),
         BundledImage(
+            id: "sample-face",
+            name: "Face",
+            assetName: "sample-face",
+            description: "Face for facial feature detection",
+            contentTypes: [.people]
+        ),
+        BundledImage(
+            id: "sample-face-glasses",
+            name: "Face with Glasses",
+            assetName: "sample-face-glasses",
+            description: "Face with glasses for facial feature detection",
+            contentTypes: [.people]
+        ),
+        BundledImage(
             id: "sample-animal",
             name: "Animal",
             assetName: "sample-animal",

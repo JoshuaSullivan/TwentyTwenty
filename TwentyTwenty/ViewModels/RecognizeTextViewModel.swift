@@ -130,6 +130,6 @@ struct RecognizedText: Identifiable {
         self.confidence = topCandidate.confidence
 
         // Convert normalized coordinates to image coordinates
-        self.boundingBox = observation.boundingBox.toImageCoordinates(imageSize)
+        self.boundingBox = observation.boundingBox.toImageCoordinates(imageSize, origin: .upperLeft)
     }
 }

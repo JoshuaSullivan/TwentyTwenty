@@ -27,6 +27,8 @@ final class DetectFaceLandmarksViewModel: BaseModelDetailViewModel {
         return generateLandmarksOverlay(for: image)
     }
 
+    var overlayColor: UIColor = .systemGreen
+
     // MARK: - Model-Specific State
 
     /// Detected faces with landmarks from the last analysis
@@ -88,8 +90,9 @@ final class DetectFaceLandmarksViewModel: BaseModelDetailViewModel {
                 // Render landmarks for this face
                 let landmarkImage = OverlayRenderer.renderFaceLandmarks(
                     landmarksData,
-                    boundingBox: face.boundingBox,
-                    imageSize: image.size
+                    visionBoundingBox: face.visionBoundingBox,
+                    imageSize: image.size,
+                    color: overlayColor
                 )
 
                 // Composite the landmark image
@@ -122,6 +125,7 @@ struct FaceWithLandmarks: Identifiable {
     let index: Int
     let confidence: Float
     let boundingBox: CGRect
+    let visionBoundingBox: NormalizedRect
     let landmarks: FaceLandmarks
     let landmarksData: FaceObservation.Landmarks2D?
 
@@ -129,8 +133,11 @@ struct FaceWithLandmarks: Identifiable {
         self.index = index
         self.confidence = observation.confidence
 
-        // Convert normalized coordinates to image coordinates
-        self.boundingBox = observation.boundingBox.toImageCoordinates(imageSize)
+        // Store original Vision bounding box for landmark conversion
+        self.visionBoundingBox = observation.boundingBox
+
+        // Convert normalized coordinates to image coordinates for display
+        self.boundingBox = observation.boundingBox.toImageCoordinates(imageSize, origin: .lowerLeft)
 
         self.landmarks = FaceLandmarks(from: observation.landmarks)
         self.landmarksData = observation.landmarks

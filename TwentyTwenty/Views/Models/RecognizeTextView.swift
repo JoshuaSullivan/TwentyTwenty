@@ -21,8 +21,8 @@ struct RecognizeTextView: View {
                     .foregroundStyle(.secondary)
 
                 Picker("Recognition Level", selection: $viewModel.recognitionLevel) {
-                    Text("Fast").tag(VNRequestTextRecognitionLevel.fast)
-                    Text("Accurate").tag(VNRequestTextRecognitionLevel.accurate)
+                    Text("Fast").tag(RecognizeTextRequest.RecognitionLevel.fast)
+                    Text("Accurate").tag(RecognizeTextRequest.RecognitionLevel.accurate)
                 }
                 .pickerStyle(.segmented)
                 .accessibilityLabel("Choose text recognition level: fast or accurate")

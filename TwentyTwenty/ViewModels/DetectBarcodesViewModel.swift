@@ -27,6 +27,8 @@ final class DetectBarcodesViewModel: BaseModelDetailViewModel {
         return generateBarcodeOverlay(for: image)
     }
 
+    var overlayColor: UIColor = .systemGreen
+
     // MARK: - Model-Specific State
 
     /// Detected barcodes from the last analysis
@@ -109,7 +111,7 @@ final class DetectBarcodesViewModel: BaseModelDetailViewModel {
             return (rect: barcode.boundingBox, label: label)
         }
 
-        return OverlayRenderer.renderRectangles(rectangles, imageSize: image.size)
+        return OverlayRenderer.renderRectangles(rectangles, imageSize: image.size, color: overlayColor)
     }
 }
 
@@ -129,7 +131,7 @@ struct DetectedBarcode: Identifiable {
         self.confidence = observation.confidence
 
         // Convert normalized coordinates to image coordinates
-        self.boundingBox = observation.boundingBox.toImageCoordinates(imageSize)
+        self.boundingBox = observation.boundingBox.toImageCoordinates(imageSize, origin: .upperLeft)
     }
 
     var symbologyName: String {

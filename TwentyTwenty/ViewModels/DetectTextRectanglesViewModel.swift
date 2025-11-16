@@ -114,7 +114,7 @@ struct DetectedTextRectangle: Identifiable {
         self.confidence = observation.confidence
 
         // Convert normalized coordinates to image coordinates
-        self.boundingBox = observation.boundingBox.toImageCoordinates(imageSize)
+        self.boundingBox = observation.boundingBox.toImageCoordinates(imageSize, origin: .upperLeft)
     }
 
     /// Area of the text rectangle

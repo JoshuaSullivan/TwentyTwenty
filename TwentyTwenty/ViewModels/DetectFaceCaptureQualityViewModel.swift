@@ -115,7 +115,7 @@ struct FaceQualityResult: Identifiable {
         self.quality = observation.captureQuality?.score ?? 0.0
 
         // Convert normalized coordinates to image coordinates
-        self.boundingBox = observation.boundingBox.toImageCoordinates(imageSize)
+        self.boundingBox = observation.boundingBox.toImageCoordinates(imageSize, origin: .upperLeft)
     }
 
     /// Quality rating based on score

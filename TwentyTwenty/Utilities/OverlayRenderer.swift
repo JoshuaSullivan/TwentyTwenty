@@ -11,11 +11,13 @@ enum OverlayRenderer {
     ///   - rectangles: Array of rectangles to draw
     ///   - imageSize: Size of the image to render on
     ///   - lineWidth: Width of the rectangle stroke (default: 3)
+    ///   - color: Color for the rectangles (default: white)
     /// - Returns: UIImage containing the rendered overlay
     static func renderRectangles(
         _ rectangles: [(rect: CGRect, label: String?)],
         imageSize: CGSize,
-        lineWidth: CGFloat = 3
+        lineWidth: CGFloat = 3,
+        color: UIColor = .white
     ) -> UIImage {
         let renderer = UIGraphicsImageRenderer(size: imageSize)
 
@@ -23,8 +25,8 @@ enum OverlayRenderer {
             let ctx = context.cgContext
 
             for (rect, label) in rectangles {
-                // Draw rectangle (white, will be tinted by the view)
-                ctx.setStrokeColor(UIColor.white.cgColor)
+                // Draw rectangle
+                ctx.setStrokeColor(color.cgColor)
                 ctx.setLineWidth(lineWidth)
                 ctx.stroke(rect)
 
@@ -120,10 +122,12 @@ enum OverlayRenderer {
     /// - Parameters:
     ///   - angle: Angle of the horizon line in radians
     ///   - imageSize: Size of the image to render on
+    ///   - color: Color for the line (default: white)
     /// - Returns: UIImage containing the rendered overlay
     static func renderHorizonLine(
         angle: Double,
-        imageSize: CGSize
+        imageSize: CGSize,
+        color: UIColor = .white
     ) -> UIImage {
         let renderer = UIGraphicsImageRenderer(size: imageSize)
 
@@ -148,7 +152,7 @@ enum OverlayRenderer {
             let endPoint = CGPoint(x: centerX + dx, y: centerY + dy)
 
             // Draw horizon line
-            ctx.setStrokeColor(UIColor.white.cgColor)
+            ctx.setStrokeColor(color.cgColor)
             ctx.setLineWidth(lineWidth)
             ctx.setLineCap(.round)
 
@@ -164,10 +168,12 @@ enum OverlayRenderer {
     /// - Parameters:
     ///   - contours: Array of contour paths to draw
     ///   - imageSize: Size of the image to render on
+    ///   - color: Color for the contours (default: white)
     /// - Returns: UIImage containing the rendered overlay
     static func renderContours(
         _ contours: [ContoursObservation.Contour],
-        imageSize: CGSize
+        imageSize: CGSize,
+        color: UIColor = .white
     ) -> UIImage {
         let renderer = UIGraphicsImageRenderer(size: imageSize)
 
@@ -178,7 +184,7 @@ enum OverlayRenderer {
         return renderer.image { context in
             let ctx = context.cgContext
 
-            ctx.setStrokeColor(UIColor.white.cgColor)
+            ctx.setStrokeColor(color.cgColor)
             ctx.setLineWidth(lineWidth)
             ctx.setLineCap(.round)
             ctx.setLineJoin(.round)
@@ -192,13 +198,15 @@ enum OverlayRenderer {
     /// Renders face landmarks as points and contours
     /// - Parameters:
     ///   - landmarks: Face landmarks to render
-    ///   - boundingBox: Face bounding box for coordinate conversion
+    ///   - visionBoundingBox: Face bounding box in Vision coordinates for landmark conversion
     ///   - imageSize: Size of the image to render on
+    ///   - color: Color for the landmarks (default: white)
     /// - Returns: UIImage containing the rendered overlay
     static func renderFaceLandmarks(
         _ landmarks: FaceObservation.Landmarks2D,
-        boundingBox: CGRect,
-        imageSize: CGSize
+        visionBoundingBox: NormalizedRect,
+        imageSize: CGSize,
+        color: UIColor = .white
     ) -> UIImage {
         let renderer = UIGraphicsImageRenderer(size: imageSize)
 
@@ -211,7 +219,7 @@ enum OverlayRenderer {
             let ctx = context.cgContext
 
             // Draw contours (connected points)
-            ctx.setStrokeColor(UIColor.white.cgColor)
+            ctx.setStrokeColor(color.cgColor)
             ctx.setLineWidth(lineWidth)
             ctx.setLineCap(.round)
             ctx.setLineJoin(.round)
@@ -229,15 +237,15 @@ enum OverlayRenderer {
             ]
 
             for region in landmarkRegions.filter({ !$0.points.isEmpty }) {
-                drawLandmarkRegion(region, boundingBox: boundingBox, imageSize: imageSize, in: ctx)
+                drawLandmarkRegion(region, visionBoundingBox: visionBoundingBox, imageSize: imageSize, in: ctx)
             }
 
             // Draw individual points
-            ctx.setFillColor(UIColor.white.cgColor)
+            ctx.setFillColor(color.cgColor)
 
             for region in landmarkRegions.filter({ !$0.points.isEmpty }) {
                 for point in region.points {
-                    let imagePoint = convertLandmarkPoint(point, boundingBox: boundingBox, imageSize: imageSize)
+                    let imagePoint = convertLandmarkPoint(point, visionBoundingBox: visionBoundingBox, imageSize: imageSize)
                     let rect = CGRect(
                         x: imagePoint.x - pointRadius,
                         y: imagePoint.y - pointRadius,
@@ -309,7 +317,7 @@ enum OverlayRenderer {
     /// Draws a landmark region (connected points)
     private static func drawLandmarkRegion(
         _ region: FaceObservation.Landmarks2D.Region,
-        boundingBox: CGRect,
+        visionBoundingBox: NormalizedRect,
         imageSize: CGSize,
         in ctx: CGContext
     ) {
@@ -317,11 +325,11 @@ enum OverlayRenderer {
 
         guard points.count > 1 else { return }
 
-        let firstPoint = convertLandmarkPoint(points[0], boundingBox: boundingBox, imageSize: imageSize)
+        let firstPoint = convertLandmarkPoint(points[0], visionBoundingBox: visionBoundingBox, imageSize: imageSize)
         ctx.move(to: firstPoint)
 
         for i in 1..<points.count {
-            let point = convertLandmarkPoint(points[i], boundingBox: boundingBox, imageSize: imageSize)
+            let point = convertLandmarkPoint(points[i], visionBoundingBox: visionBoundingBox, imageSize: imageSize)
             ctx.addLine(to: point)
         }
 
@@ -331,16 +339,20 @@ enum OverlayRenderer {
     /// Converts a normalized landmark point to image coordinates
     private static func convertLandmarkPoint(
         _ point: NormalizedPoint,
-        boundingBox: CGRect,
+        visionBoundingBox: NormalizedRect,
         imageSize: CGSize
     ) -> CGPoint {
-        // Landmark points are relative to the face bounding box
-        // First convert to bounding box coordinates, then to image coordinates
+        // Manual conversion matching createwithswift.com approach:
+        // 1. Convert landmark point from normalized (0-1) to bounding box space
         let cgPoint = point.cgPoint
-        let x = boundingBox.origin.x + cgPoint.x * boundingBox.width
-        let y = boundingBox.origin.y + (1 - cgPoint.y) * boundingBox.height
+        let x = visionBoundingBox.origin.x + cgPoint.x * visionBoundingBox.width
+        let y = visionBoundingBox.origin.y + cgPoint.y * visionBoundingBox.height
 
-        return CGPoint(x: x, y: y)
+        // 2. Flip y-axis (Vision uses lowerLeft, UIKit uses upperLeft) and scale to image size
+        return CGPoint(
+            x: x * imageSize.width,
+            y: y * imageSize.height
+        )
     }
 
     /// Draws a label with background at the specified position

@@ -12,6 +12,9 @@ struct ImageSelectionView: View {
     /// Optional overlay image to composite on top
     let overlayImage: UIImage?
 
+    /// Binding to overlay color
+    @Binding var overlayColor: UIColor
+
     /// State for overlay display
     @State private var showOverlay = true
     @State private var overlayOpacity = 0.7
@@ -26,11 +29,13 @@ struct ImageSelectionView: View {
     init(
         selectedImage: Binding<UIImage?>,
         recommendedContentTypes: Set<ImageContentType> = [],
-        overlayImage: UIImage? = nil
+        overlayImage: UIImage? = nil,
+        overlayColor: Binding<UIColor> = .constant(.systemGreen)
     ) {
         self._selectedImage = selectedImage
         self.recommendedContentTypes = recommendedContentTypes
         self.overlayImage = overlayImage
+        self._overlayColor = overlayColor
     }
 
     var body: some View {
@@ -149,15 +154,29 @@ struct ImageSelectionView: View {
             }
 
             if showOverlay {
-                HStack {
-                    Text("Opacity")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Slider(value: $overlayOpacity, in: 0...1)
-                    Text("\(Int(overlayOpacity * 100))%")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 40, alignment: .trailing)
+                HStack(spacing: 16) {
+                    HStack {
+                        Text("Opacity")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Slider(value: $overlayOpacity, in: 0...1)
+                            .frame(maxWidth: 120)
+                        Text("\(Int(overlayOpacity * 100))%")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 35, alignment: .trailing)
+                    }
+
+                    HStack {
+                        Text("Color")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        ColorPicker("Overlay Color", selection: Binding(
+                            get: { Color(uiColor: overlayColor) },
+                            set: { overlayColor = UIColor($0) }
+                        ))
+                        .labelsHidden()
+                    }
                 }
             }
         }
@@ -199,7 +218,8 @@ struct BundledImagePickerView: View {
                         }
                     }
                 }
-                .padding()
+                .padding(.horizontal, 20)
+                .padding(.vertical)
             }
             .navigationTitle("Sample Images")
             .navigationBarTitleDisplayMode(.inline)

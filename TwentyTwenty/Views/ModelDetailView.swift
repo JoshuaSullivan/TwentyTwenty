@@ -24,7 +24,8 @@ struct ModelDetailView<ViewModel: BaseModelDetailViewModel, ConfigurationView: V
                 ImageSelectionView(
                     selectedImage: $viewModel.selectedImage,
                     recommendedContentTypes: viewModel.recommendedContentTypes,
-                    overlayImage: viewModel.overlayImage
+                    overlayImage: viewModel.overlayImage,
+                    overlayColor: $viewModel.overlayColor
                 )
                 .padding(.horizontal)
 
