@@ -97,48 +97,44 @@ final class DetectHumanBodyPoseViewModel: BaseModelDetailViewModel {
 
     private func generatePoseOverlay(for image: UIImage) -> UIImage {
         let poses = detectedPoses.map { pose -> (joints: [CGPoint], connections: [(Int, Int)]) in
-            // Create a dictionary mapping joint names to indices
+            // Create a dictionary mapping actual joint names to indices
             var jointMap: [String: Int] = [:]
             let jointPoints = pose.joints.enumerated().map { index, joint -> CGPoint in
-                // Normalize joint name: remove type prefix and underscores, then lowercase
-                let normalizedName = joint.name
-                    .replacingOccurrences(of: "VNHumanBodyPoseObservationJointName", with: "")
-                    .lowercased()
-                    .replacingOccurrences(of: "_", with: "")
-                jointMap[normalizedName] = index
+                jointMap[joint.name] = index
                 return joint.position
             }
 
-            // Define skeleton connections using actual Vision joint names
+            // Define skeleton connections using actual Vision framework constant names
             var connections: [(Int, Int)] = []
             let connectionPairs: [(String, String)] = [
-                // Head to face
-                ("head", "lefteye"),
-                ("head", "righteye"),
-                ("lefteye", "leftear"),
-                ("righteye", "rightear"),
-                // Neck/shoulders (head connects down to shoulders)
-                ("head", "leftshoulder1"),
-                ("head", "rightshoulder1"),
+                // Head/face
+                ("VNHumanBodyPoseObservationJointNameNose", "VNHumanBodyPoseObservationJointNameLeftEye"),
+                ("VNHumanBodyPoseObservationJointNameNose", "VNHumanBodyPoseObservationJointNameRightEye"),
+                ("VNHumanBodyPoseObservationJointNameLeftEye", "VNHumanBodyPoseObservationJointNameLeftEar"),
+                ("VNHumanBodyPoseObservationJointNameRightEye", "VNHumanBodyPoseObservationJointNameRightEar"),
+                // Neck to shoulders
+                ("VNHumanBodyPoseObservationJointNameNeck", "VNHumanBodyPoseObservationJointNameLeftShoulder"),
+                ("VNHumanBodyPoseObservationJointNameNeck", "VNHumanBodyPoseObservationJointNameRightShoulder"),
                 // Upper body
-                ("leftshoulder1", "rightshoulder1"),
-                // Spine (shoulders to hips)
-                ("leftshoulder1", "leftupleg"),
-                ("rightshoulder1", "rightupleg"),
+                ("VNHumanBodyPoseObservationJointNameLeftShoulder", "VNHumanBodyPoseObservationJointNameRightShoulder"),
+                // Spine (shoulders to hips via root)
+                ("VNHumanBodyPoseObservationJointNameNeck", "VNHumanBodyPoseObservationJointNameRoot"),
+                ("VNHumanBodyPoseObservationJointNameRoot", "VNHumanBodyPoseObservationJointNameLeftHip"),
+                ("VNHumanBodyPoseObservationJointNameRoot", "VNHumanBodyPoseObservationJointNameRightHip"),
                 // Hips
-                ("leftupleg", "rightupleg"),
+                ("VNHumanBodyPoseObservationJointNameLeftHip", "VNHumanBodyPoseObservationJointNameRightHip"),
                 // Left arm
-                ("leftshoulder1", "leftforearm"),
-                ("leftforearm", "lefthand"),
+                ("VNHumanBodyPoseObservationJointNameLeftShoulder", "VNHumanBodyPoseObservationJointNameLeftElbow"),
+                ("VNHumanBodyPoseObservationJointNameLeftElbow", "VNHumanBodyPoseObservationJointNameLeftWrist"),
                 // Right arm
-                ("rightshoulder1", "rightforearm"),
-                ("rightforearm", "righthand"),
+                ("VNHumanBodyPoseObservationJointNameRightShoulder", "VNHumanBodyPoseObservationJointNameRightElbow"),
+                ("VNHumanBodyPoseObservationJointNameRightElbow", "VNHumanBodyPoseObservationJointNameRightWrist"),
                 // Left leg
-                ("leftupleg", "leftleg"),
-                ("leftleg", "leftfoot"),
+                ("VNHumanBodyPoseObservationJointNameLeftHip", "VNHumanBodyPoseObservationJointNameLeftKnee"),
+                ("VNHumanBodyPoseObservationJointNameLeftKnee", "VNHumanBodyPoseObservationJointNameLeftAnkle"),
                 // Right leg
-                ("rightupleg", "rightleg"),
-                ("rightleg", "rightfoot")
+                ("VNHumanBodyPoseObservationJointNameRightHip", "VNHumanBodyPoseObservationJointNameRightKnee"),
+                ("VNHumanBodyPoseObservationJointNameRightKnee", "VNHumanBodyPoseObservationJointNameRightAnkle")
             ]
 
             for (from, to) in connectionPairs {

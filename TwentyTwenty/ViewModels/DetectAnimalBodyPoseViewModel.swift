@@ -97,54 +97,49 @@ final class DetectAnimalBodyPoseViewModel: BaseModelDetailViewModel {
 
     private func generatePoseOverlay(for image: UIImage) -> UIImage {
         let poses = detectedPoses.map { pose -> (joints: [CGPoint], connections: [(Int, Int)]) in
-            // Create a dictionary mapping joint names to indices
+            // Create a dictionary mapping actual joint names to indices
             var jointMap: [String: Int] = [:]
             let jointPoints = pose.joints.enumerated().map { index, joint -> CGPoint in
-                // Normalize joint name: remove type prefix and underscores, then lowercase
-                let normalizedName = joint.name
-                    .replacingOccurrences(of: "VNAnimalBodyPoseObservationJointName", with: "")
-                    .lowercased()
-                    .replacingOccurrences(of: "_", with: "")
-                jointMap[normalizedName] = index
+                jointMap[joint.name] = index
                 return joint.position
             }
 
-            // Define skeleton connections for animals (cats/dogs)
+            // Define skeleton connections using actual Vision framework constant names
             var connections: [(Int, Int)] = []
             let connectionPairs: [(String, String)] = [
                 // Ears (outer to inner)
-                ("lefteartop", "leftearmiddle"),
-                ("leftearmiddle", "leftearbottom"),
-                ("righteartop", "rightearmiddle"),
-                ("rightearmiddle", "rightearbottom"),
+                ("VNAnimalBodyPoseObservationJointNameLeftEarTop", "VNAnimalBodyPoseObservationJointNameLeftEarMiddle"),
+                ("VNAnimalBodyPoseObservationJointNameLeftEarMiddle", "VNAnimalBodyPoseObservationJointNameLeftEarBottom"),
+                ("VNAnimalBodyPoseObservationJointNameRightEarTop", "VNAnimalBodyPoseObservationJointNameRightEarMiddle"),
+                ("VNAnimalBodyPoseObservationJointNameRightEarMiddle", "VNAnimalBodyPoseObservationJointNameRightEarBottom"),
                 // Head - ears to eyes
-                ("leftearbottom", "lefteye"),
-                ("rightearbottom", "righteye"),
+                ("VNAnimalBodyPoseObservationJointNameLeftEarBottom", "VNAnimalBodyPoseObservationJointNameLeftEye"),
+                ("VNAnimalBodyPoseObservationJointNameRightEarBottom", "VNAnimalBodyPoseObservationJointNameRightEye"),
                 // Head - eyes to nose
-                ("lefteye", "nose"),
-                ("righteye", "nose"),
+                ("VNAnimalBodyPoseObservationJointNameLeftEye", "VNAnimalBodyPoseObservationJointNameNose"),
+                ("VNAnimalBodyPoseObservationJointNameRightEye", "VNAnimalBodyPoseObservationJointNameNose"),
                 // Nose to neck
-                ("nose", "neck"),
+                ("VNAnimalBodyPoseObservationJointNameNose", "VNAnimalBodyPoseObservationJointNameNeck"),
                 // Front left leg
-                ("neck", "leftfrontelbow"),
-                ("leftfrontelbow", "leftfrontknee"),
-                ("leftfrontknee", "leftfrontpaw"),
+                ("VNAnimalBodyPoseObservationJointNameNeck", "VNAnimalBodyPoseObservationJointNameLeftFrontElbow"),
+                ("VNAnimalBodyPoseObservationJointNameLeftFrontElbow", "VNAnimalBodyPoseObservationJointNameLeftFrontKnee"),
+                ("VNAnimalBodyPoseObservationJointNameLeftFrontKnee", "VNAnimalBodyPoseObservationJointNameLeftFrontPaw"),
                 // Front right leg
-                ("neck", "rightfrontelbow"),
-                ("rightfrontelbow", "rightfrontknee"),
-                ("rightfrontknee", "rightfrontpaw"),
+                ("VNAnimalBodyPoseObservationJointNameNeck", "VNAnimalBodyPoseObservationJointNameRightFrontElbow"),
+                ("VNAnimalBodyPoseObservationJointNameRightFrontElbow", "VNAnimalBodyPoseObservationJointNameRightFrontKnee"),
+                ("VNAnimalBodyPoseObservationJointNameRightFrontKnee", "VNAnimalBodyPoseObservationJointNameRightFrontPaw"),
                 // Back left leg
-                ("neck", "leftbackelbow"),
-                ("leftbackelbow", "leftbackknee"),
-                ("leftbackknee", "leftbackpaw"),
+                ("VNAnimalBodyPoseObservationJointNameNeck", "VNAnimalBodyPoseObservationJointNameLeftBackElbow"),
+                ("VNAnimalBodyPoseObservationJointNameLeftBackElbow", "VNAnimalBodyPoseObservationJointNameLeftBackKnee"),
+                ("VNAnimalBodyPoseObservationJointNameLeftBackKnee", "VNAnimalBodyPoseObservationJointNameLeftBackPaw"),
                 // Back right leg
-                ("neck", "rightbackelbow"),
-                ("rightbackelbow", "rightbackknee"),
-                ("rightbackknee", "rightbackpaw"),
+                ("VNAnimalBodyPoseObservationJointNameNeck", "VNAnimalBodyPoseObservationJointNameRightBackElbow"),
+                ("VNAnimalBodyPoseObservationJointNameRightBackElbow", "VNAnimalBodyPoseObservationJointNameRightBackKnee"),
+                ("VNAnimalBodyPoseObservationJointNameRightBackKnee", "VNAnimalBodyPoseObservationJointNameRightBackPaw"),
                 // Tail
-                ("neck", "tailtop"),
-                ("tailtop", "tailmiddle"),
-                ("tailmiddle", "tailbottom")
+                ("VNAnimalBodyPoseObservationJointNameNeck", "VNAnimalBodyPoseObservationJointNameTailTop"),
+                ("VNAnimalBodyPoseObservationJointNameTailTop", "VNAnimalBodyPoseObservationJointNameTailMiddle"),
+                ("VNAnimalBodyPoseObservationJointNameTailMiddle", "VNAnimalBodyPoseObservationJointNameTailBottom")
             ]
 
             for (from, to) in connectionPairs {

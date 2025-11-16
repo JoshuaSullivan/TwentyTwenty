@@ -5,7 +5,8 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(xcodebuild:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(xcrun simctl:*)"
     ],
     "deny": [],
     "ask": []

@@ -101,46 +101,41 @@ final class DetectHumanHandPoseViewModel: BaseModelDetailViewModel {
 
     private func generateHandPoseOverlay(for image: UIImage) -> UIImage {
         let poses = detectedHands.map { hand -> (joints: [CGPoint], connections: [(Int, Int)]) in
-            // Create a dictionary mapping joint names to indices
+            // Create a dictionary mapping actual joint names to indices
             var jointMap: [String: Int] = [:]
             let jointPoints = hand.joints.enumerated().map { index, joint -> CGPoint in
-                // Normalize joint name: remove type prefix and underscores, then lowercase
-                let normalizedName = joint.name
-                    .replacingOccurrences(of: "VNHumanHandPoseObservationJointName", with: "")
-                    .lowercased()
-                    .replacingOccurrences(of: "_", with: "")
-                jointMap[normalizedName] = index
+                jointMap[joint.name] = index
                 return joint.position
             }
 
-            // Define skeleton connections for hands
+            // Define skeleton connections using actual Vision framework constant names
             var connections: [(Int, Int)] = []
             let connectionPairs: [(String, String)] = [
                 // Thumb
-                ("wrist", "thumbcmc"),
-                ("thumbcmc", "thumbmp"),
-                ("thumbmp", "thumbip"),
-                ("thumbip", "thumbtip"),
+                ("VNHumanHandPoseObservationJointNameWrist", "VNHumanHandPoseObservationJointNameThumbCMC"),
+                ("VNHumanHandPoseObservationJointNameThumbCMC", "VNHumanHandPoseObservationJointNameThumbMP"),
+                ("VNHumanHandPoseObservationJointNameThumbMP", "VNHumanHandPoseObservationJointNameThumbIP"),
+                ("VNHumanHandPoseObservationJointNameThumbIP", "VNHumanHandPoseObservationJointNameThumbTip"),
                 // Index finger
-                ("wrist", "indexmcp"),
-                ("indexmcp", "indexpip"),
-                ("indexpip", "indexdip"),
-                ("indexdip", "indextip"),
+                ("VNHumanHandPoseObservationJointNameWrist", "VNHumanHandPoseObservationJointNameIndexMCP"),
+                ("VNHumanHandPoseObservationJointNameIndexMCP", "VNHumanHandPoseObservationJointNameIndexPIP"),
+                ("VNHumanHandPoseObservationJointNameIndexPIP", "VNHumanHandPoseObservationJointNameIndexDIP"),
+                ("VNHumanHandPoseObservationJointNameIndexDIP", "VNHumanHandPoseObservationJointNameIndexTip"),
                 // Middle finger
-                ("wrist", "middlemcp"),
-                ("middlemcp", "middlepip"),
-                ("middlepip", "middledip"),
-                ("middledip", "middletip"),
+                ("VNHumanHandPoseObservationJointNameWrist", "VNHumanHandPoseObservationJointNameMiddleMCP"),
+                ("VNHumanHandPoseObservationJointNameMiddleMCP", "VNHumanHandPoseObservationJointNameMiddlePIP"),
+                ("VNHumanHandPoseObservationJointNameMiddlePIP", "VNHumanHandPoseObservationJointNameMiddleDIP"),
+                ("VNHumanHandPoseObservationJointNameMiddleDIP", "VNHumanHandPoseObservationJointNameMiddleTip"),
                 // Ring finger
-                ("wrist", "ringmcp"),
-                ("ringmcp", "ringpip"),
-                ("ringpip", "ringdip"),
-                ("ringdip", "ringtip"),
+                ("VNHumanHandPoseObservationJointNameWrist", "VNHumanHandPoseObservationJointNameRingMCP"),
+                ("VNHumanHandPoseObservationJointNameRingMCP", "VNHumanHandPoseObservationJointNameRingPIP"),
+                ("VNHumanHandPoseObservationJointNameRingPIP", "VNHumanHandPoseObservationJointNameRingDIP"),
+                ("VNHumanHandPoseObservationJointNameRingDIP", "VNHumanHandPoseObservationJointNameRingTip"),
                 // Little finger
-                ("wrist", "littlemcp"),
-                ("littlemcp", "littlepip"),
-                ("littlepip", "littledip"),
-                ("littledip", "littletip")
+                ("VNHumanHandPoseObservationJointNameWrist", "VNHumanHandPoseObservationJointNameLittleMCP"),
+                ("VNHumanHandPoseObservationJointNameLittleMCP", "VNHumanHandPoseObservationJointNameLittlePIP"),
+                ("VNHumanHandPoseObservationJointNameLittlePIP", "VNHumanHandPoseObservationJointNameLittleDIP"),
+                ("VNHumanHandPoseObservationJointNameLittleDIP", "VNHumanHandPoseObservationJointNameLittleTip")
             ]
 
             for (from, to) in connectionPairs {
