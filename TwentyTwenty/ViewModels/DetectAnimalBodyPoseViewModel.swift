@@ -100,10 +100,10 @@ final class DetectAnimalBodyPoseViewModel: BaseModelDetailViewModel {
             // Create a dictionary mapping joint names to indices
             var jointMap: [String: Int] = [:]
             let jointPoints = pose.joints.enumerated().map { index, joint -> CGPoint in
-                // Normalize joint name: remove "_joint" suffix, underscores, and lowercase
+                // Normalize joint name: remove type prefix and underscores, then lowercase
                 let normalizedName = joint.name
+                    .replacingOccurrences(of: "VNAnimalBodyPoseObservationJointName", with: "")
                     .lowercased()
-                    .replacingOccurrences(of: "_joint", with: "")
                     .replacingOccurrences(of: "_", with: "")
                 jointMap[normalizedName] = index
                 return joint.position

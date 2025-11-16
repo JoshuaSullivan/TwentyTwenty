@@ -55,6 +55,13 @@ struct BundledImageRegistry {
             contentTypes: [.people]
         ),
         BundledImage(
+            id: "sample-hand",
+            name: "Hand",
+            assetName: "sample-hand",
+            description: "Hand for hand pose detection",
+            contentTypes: [.people]
+        ),
+        BundledImage(
             id: "sample-animal",
             name: "Animal",
             assetName: "sample-animal",
