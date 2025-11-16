@@ -19,6 +19,11 @@ final class GeneratePersonInstanceMaskViewModel: BaseModelDetailViewModel {
         [.people]
     }
 
+    var overlayImage: UIImage? {
+        // TODO: VNInstanceMaskObservation requires different API to extract masks
+        return nil
+    }
+
     // MARK: - Model-Specific State
 
     /// Generated person instance masks from the last analysis

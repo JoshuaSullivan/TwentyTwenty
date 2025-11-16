@@ -19,6 +19,14 @@ final class DetectRectanglesViewModel: BaseModelDetailViewModel {
         [.documents, .architecture]
     }
 
+    var overlayImage: UIImage? {
+        guard !detectedRectangles.isEmpty,
+              let image = selectedImage else {
+            return nil
+        }
+        return generateRectangleOverlay(for: image)
+    }
+
     // MARK: - Model-Specific State
 
     /// Detected rectangles from the last analysis
@@ -73,6 +81,14 @@ final class DetectRectanglesViewModel: BaseModelDetailViewModel {
     }
 
     // MARK: - Private Methods
+
+    private func generateRectangleOverlay(for image: UIImage) -> UIImage {
+        let rectangles = detectedRectangles.map { rectangle in
+            let label = String(format: "%.2f", rectangle.confidence)
+            return (rect: rectangle.boundingBox, label: label)
+        }
+        return OverlayRenderer.renderRectangles(rectangles, imageSize: image.size)
+    }
 
     private func performRectangleDetection(on image: UIImage) async throws -> [DetectedRectangle] {
         guard let cgImage = image.cgImage else {

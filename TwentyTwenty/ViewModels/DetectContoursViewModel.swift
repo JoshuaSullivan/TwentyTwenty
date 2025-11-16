@@ -19,6 +19,14 @@ final class DetectContoursViewModel: BaseModelDetailViewModel {
         [.objects, .nature]
     }
 
+    var overlayImage: UIImage? {
+        guard !detectedContours.isEmpty,
+              let image = selectedImage else {
+            return nil
+        }
+        return generateContoursOverlay(for: image)
+    }
+
     // MARK: - Model-Specific State
 
     /// Detected contours from the last analysis
@@ -71,6 +79,12 @@ final class DetectContoursViewModel: BaseModelDetailViewModel {
 
     // MARK: - Private Methods
 
+    private func generateContoursOverlay(for image: UIImage) -> UIImage {
+        // Collect all contours from all detected contour sets
+        let allContours = detectedContours.flatMap { $0.contours }
+        return OverlayRenderer.renderContours(allContours, imageSize: image.size)
+    }
+
     private func performContourDetection(on image: UIImage) async throws -> [DetectedContour] {
         guard let cgImage = image.cgImage else {
             throw VisionError.invalidImage
@@ -102,12 +116,16 @@ struct DetectedContour: Identifiable {
     let pointCount: Int
     let childContourCount: Int
     let aspectRatio: Float
+    let contours: [VNContour]
 
     init?(from observation: VNContoursObservation, index: Int) {
         self.index = index
         self.confidence = observation.confidence
 
-        // Get the top-level contour
+        // Get all contours (top-level and children)
+        self.contours = observation.topLevelContours
+
+        // Get the top-level contour for stats
         guard let topLevelContour = observation.topLevelContours.first else {
             return nil
         }

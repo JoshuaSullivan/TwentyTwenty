@@ -19,6 +19,14 @@ final class GenerateObjectnessBasedSaliencyImageViewModel: BaseModelDetailViewMo
         [.objects, .people, .nature]
     }
 
+    var overlayImage: UIImage? {
+        guard !saliencyResults.isEmpty,
+              let image = selectedImage else {
+            return nil
+        }
+        return generateSaliencyOverlay(for: image)
+    }
+
     // MARK: - Model-Specific State
 
     /// Generated objectness saliency results from the last analysis
@@ -67,6 +75,16 @@ final class GenerateObjectnessBasedSaliencyImageViewModel: BaseModelDetailViewMo
     }
 
     // MARK: - Private Methods
+
+    private func generateSaliencyOverlay(for image: UIImage) -> UIImage {
+        let rectangles = saliencyResults.flatMap { result in
+            result.salientObjects.map { object in
+                let label = String(format: "%.2f", object.confidence)
+                return (rect: object.boundingBox, label: label)
+            }
+        }
+        return OverlayRenderer.renderRectangles(rectangles, imageSize: image.size)
+    }
 
     private func performObjectnessSaliencyGeneration(on image: UIImage) async throws -> [ObjectnessSaliency] {
         guard let cgImage = image.cgImage else {

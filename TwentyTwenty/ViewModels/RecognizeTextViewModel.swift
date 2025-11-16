@@ -19,6 +19,14 @@ final class RecognizeTextViewModel: BaseModelDetailViewModel {
         [.text, .documents]
     }
 
+    var overlayImage: UIImage? {
+        guard !recognizedTexts.isEmpty,
+              let image = selectedImage else {
+            return nil
+        }
+        return generateTextOverlay(for: image)
+    }
+
     // MARK: - Model-Specific State
 
     /// Recognized text observations from the last analysis
@@ -77,6 +85,15 @@ final class RecognizeTextViewModel: BaseModelDetailViewModel {
     }
 
     // MARK: - Private Methods
+
+    private func generateTextOverlay(for image: UIImage) -> UIImage {
+        let rectangles = recognizedTexts.map { text in
+            // Truncate long text for labels
+            let label = text.text.count > 20 ? String(text.text.prefix(17)) + "..." : text.text
+            return (rect: text.boundingBox, label: label)
+        }
+        return OverlayRenderer.renderRectangles(rectangles, imageSize: image.size)
+    }
 
     private func performTextRecognition(on image: UIImage) async throws -> [RecognizedText] {
         guard let cgImage = image.cgImage else {

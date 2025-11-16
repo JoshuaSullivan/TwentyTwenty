@@ -19,6 +19,11 @@ final class GenerateForegroundInstanceMaskViewModel: BaseModelDetailViewModel {
         [.objects, .people, .animals]
     }
 
+    var overlayImage: UIImage? {
+        // TODO: VNInstanceMaskObservation requires different API to extract masks
+        return nil
+    }
+
     // MARK: - Model-Specific State
 
     /// Generated foreground instance masks from the last analysis

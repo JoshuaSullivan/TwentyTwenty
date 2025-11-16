@@ -19,6 +19,14 @@ final class DetectFaceLandmarksViewModel: BaseModelDetailViewModel {
         [.people]
     }
 
+    var overlayImage: UIImage? {
+        guard !detectedFaces.isEmpty,
+              let image = selectedImage else {
+            return nil
+        }
+        return generateLandmarksOverlay(for: image)
+    }
+
     // MARK: - Model-Specific State
 
     /// Detected faces with landmarks from the last analysis
@@ -68,6 +76,30 @@ final class DetectFaceLandmarksViewModel: BaseModelDetailViewModel {
 
     // MARK: - Private Methods
 
+    private func generateLandmarksOverlay(for image: UIImage) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: image.size)
+
+        return renderer.image { context in
+            let ctx = context.cgContext
+
+            for face in detectedFaces {
+                guard let landmarksData = face.landmarksData else { continue }
+
+                // Render landmarks for this face
+                let landmarkImage = OverlayRenderer.renderFaceLandmarks(
+                    landmarksData,
+                    boundingBox: face.boundingBox,
+                    imageSize: image.size
+                )
+
+                // Composite the landmark image
+                if let cgImage = landmarkImage.cgImage {
+                    ctx.draw(cgImage, in: CGRect(origin: .zero, size: image.size))
+                }
+            }
+        }
+    }
+
     private func performFaceLandmarksDetection(on image: UIImage) async throws -> [FaceWithLandmarks] {
         guard let cgImage = image.cgImage else {
             throw VisionError.invalidImage
@@ -97,6 +129,7 @@ struct FaceWithLandmarks: Identifiable {
     let confidence: Float
     let boundingBox: CGRect
     let landmarks: FaceLandmarks
+    let landmarksData: VNFaceLandmarks2D?
 
     init(from observation: VNFaceObservation, index: Int, imageSize: CGSize) {
         self.index = index
@@ -112,6 +145,7 @@ struct FaceWithLandmarks: Identifiable {
         )
 
         self.landmarks = FaceLandmarks(from: observation.landmarks)
+        self.landmarksData = observation.landmarks
     }
 }
 

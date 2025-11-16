@@ -19,6 +19,14 @@ final class DetectHorizonViewModel: BaseModelDetailViewModel {
         [.nature, .architecture]
     }
 
+    var overlayImage: UIImage? {
+        guard let horizon = detectedHorizon,
+              let image = selectedImage else {
+            return nil
+        }
+        return generateHorizonOverlay(for: image, horizon: horizon)
+    }
+
     // MARK: - Model-Specific State
 
     /// Detected horizon from the last analysis
@@ -67,6 +75,10 @@ final class DetectHorizonViewModel: BaseModelDetailViewModel {
     }
 
     // MARK: - Private Methods
+
+    private func generateHorizonOverlay(for image: UIImage, horizon: DetectedHorizon) -> UIImage {
+        return OverlayRenderer.renderHorizonLine(angle: horizon.angle, imageSize: image.size)
+    }
 
     private func performHorizonDetection(on image: UIImage) async throws -> DetectedHorizon? {
         guard let cgImage = image.cgImage else {
