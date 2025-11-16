@@ -76,7 +76,7 @@ struct ForegroundInstanceCard: View {
                 HStack(spacing: 8) {
                     Image(systemName: "square.on.square")
                         .foregroundStyle(.blue)
-                    Text("Mask \(instance.index + 1)")
+                    Text("Foreground Mask")
                         .font(.headline)
                 }
 

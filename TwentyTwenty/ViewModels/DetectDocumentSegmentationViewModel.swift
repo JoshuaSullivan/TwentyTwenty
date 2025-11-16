@@ -110,12 +110,29 @@ struct DetectedDocument: Identifiable {
     let confidence: Float
     let boundingBox: CGRect
 
-    init(from observation: RectangleObservation, index: Int, imageSize: CGSize) {
+    init(from observation: DetectedDocumentObservation, index: Int, imageSize: CGSize) {
         self.index = index
         self.confidence = observation.confidence
 
-        // Convert normalized coordinates to image coordinates
-        self.boundingBox = observation.boundingBox.toImageCoordinates(imageSize)
+        // Convert quadrilateral to bounding box
+        let points = [
+            observation.topLeft,
+            observation.topRight,
+            observation.bottomRight,
+            observation.bottomLeft
+        ]
+
+        let minX = points.map { $0.x }.min() ?? 0
+        let maxX = points.map { $0.x }.max() ?? 0
+        let minY = points.map { $0.y }.min() ?? 0
+        let maxY = points.map { $0.y }.max() ?? 0
+
+        self.boundingBox = CGRect(
+            x: minX * imageSize.width,
+            y: (1 - maxY) * imageSize.height,
+            width: (maxX - minX) * imageSize.width,
+            height: (maxY - minY) * imageSize.height
+        )
     }
 
     /// Area of the document

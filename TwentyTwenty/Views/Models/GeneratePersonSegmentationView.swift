@@ -21,8 +21,8 @@ struct GeneratePersonSegmentationView: View {
                     .fontWeight(.semibold)
 
                 Picker("Quality Level", selection: $viewModel.qualityLevel) {
-                    Text("Accurate").tag(VNGeneratePersonSegmentationRequest.QualityLevel.accurate)
-                    Text("Balanced").tag(VNGeneratePersonSegmentationRequest.QualityLevel.balanced)
+                    Text("Accurate").tag(GeneratePersonSegmentationRequest.QualityLevel.accurate)
+                    Text("Balanced").tag(GeneratePersonSegmentationRequest.QualityLevel.balanced)
                 }
                 .pickerStyle(.segmented)
 
@@ -32,18 +32,16 @@ struct GeneratePersonSegmentationView: View {
             }
         }, resultsView: {
             // Results View
-            if !viewModel.segmentationResults.isEmpty {
+            if let result = viewModel.segmentationResult {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Person Segmentation Results")
                         .font(.headline)
 
-                    Text("\(viewModel.segmentationResults.count) segmentation mask(s) generated")
+                    Text("Segmentation mask generated")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
-                    ForEach(viewModel.segmentationResults) { result in
-                        PersonSegmentationCard(result: result, qualityLevel: viewModel.qualityLevel)
-                    }
+                    PersonSegmentationCard(result: result, qualityLevel: viewModel.qualityLevel)
 
                     // Info
                     VStack(alignment: .leading, spacing: 8) {
@@ -69,7 +67,7 @@ struct GeneratePersonSegmentationView: View {
 /// Card displaying person segmentation information
 struct PersonSegmentationCard: View {
     let result: PersonSegmentation
-    let qualityLevel: VNGeneratePersonSegmentationRequest.QualityLevel
+    let qualityLevel: GeneratePersonSegmentationRequest.QualityLevel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -77,7 +75,7 @@ struct PersonSegmentationCard: View {
                 HStack(spacing: 8) {
                     Image(systemName: "person.crop.rectangle")
                         .foregroundStyle(.blue)
-                    Text("Segmentation Mask \(result.index + 1)")
+                    Text("Segmentation Mask")
                         .font(.headline)
                 }
 

@@ -76,7 +76,7 @@ struct PersonInstanceCard: View {
                 HStack(spacing: 8) {
                     Image(systemName: "person.fill")
                         .foregroundStyle(.blue)
-                    Text("Mask \(instance.index + 1)")
+                    Text("Person Instance Mask")
                         .font(.headline)
                 }
 

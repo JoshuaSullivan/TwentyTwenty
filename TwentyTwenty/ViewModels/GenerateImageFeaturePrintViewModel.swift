@@ -74,11 +74,9 @@ final class GenerateImageFeaturePrintViewModel: BaseModelDetailViewModel {
         }
 
         let request = GenerateImageFeaturePrintRequest()
-        let observations = try await request.perform(on: cgImage, orientation: nil)
+        let observation = try await request.perform(on: cgImage, orientation: nil)
 
-        return observations.enumerated().map { index, observation in
-            ImageFeaturePrint(from: observation, index: index)
-        }
+        return [ImageFeaturePrint(from: observation, index: 0)]
     }
 }
 
@@ -103,8 +101,6 @@ struct ImageFeaturePrint: Identifiable {
             self.elementType = "Float"
         case .double:
             self.elementType = "Double"
-        case .unknown:
-            self.elementType = "Unknown"
         @unknown default:
             self.elementType = "Unknown"
         }

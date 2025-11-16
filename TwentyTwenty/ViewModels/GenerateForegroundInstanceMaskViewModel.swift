@@ -79,10 +79,12 @@ final class GenerateForegroundInstanceMaskViewModel: BaseModelDetailViewModel {
         }
 
         let request = GenerateForegroundInstanceMaskRequest()
-        let observations = try await request.perform(on: cgImage, orientation: nil)
+        let observation = try await request.perform(on: cgImage, orientation: nil)
 
-        return observations.enumerated().map { index, observation in
-            ForegroundInstance(from: observation, index: index)
+        if let observation = observation {
+            return [ForegroundInstance(from: observation)]
+        } else {
+            return []
         }
     }
 }
@@ -92,12 +94,10 @@ final class GenerateForegroundInstanceMaskViewModel: BaseModelDetailViewModel {
 /// Represents a foreground instance with segmentation mask
 struct ForegroundInstance: Identifiable {
     let id = UUID()
-    let index: Int
     let confidence: Float
     let instanceCount: Int
 
-    init(from observation: InstanceMaskObservation, index: Int) {
-        self.index = index
+    init(from observation: InstanceMaskObservation) {
         self.confidence = observation.confidence
 
         // Get all instances from the mask

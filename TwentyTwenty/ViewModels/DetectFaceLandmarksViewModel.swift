@@ -162,23 +162,23 @@ struct FaceLandmarks {
             return
         }
 
-        self.hasLeftEye = landmarks.leftEye != nil
-        self.hasRightEye = landmarks.rightEye != nil
-        self.hasNose = landmarks.nose != nil
-        self.hasMouth = landmarks.outerLips != nil
-        self.hasFaceContour = landmarks.faceContour != nil
-        self.hasLeftEyebrow = landmarks.leftEyebrow != nil
-        self.hasRightEyebrow = landmarks.rightEyebrow != nil
+        self.hasLeftEye = !landmarks.leftEye.points.isEmpty
+        self.hasRightEye = !landmarks.rightEye.points.isEmpty
+        self.hasNose = !landmarks.nose.points.isEmpty
+        self.hasMouth = !landmarks.outerLips.points.isEmpty
+        self.hasFaceContour = !landmarks.faceContour.points.isEmpty
+        self.hasLeftEyebrow = !landmarks.leftEyebrow.points.isEmpty
+        self.hasRightEyebrow = !landmarks.rightEyebrow.points.isEmpty
 
         var count = 0
-        count += landmarks.leftEye?.pointCount ?? 0
-        count += landmarks.rightEye?.pointCount ?? 0
-        count += landmarks.nose?.pointCount ?? 0
-        count += landmarks.outerLips?.pointCount ?? 0
-        count += landmarks.innerLips?.pointCount ?? 0
-        count += landmarks.faceContour?.pointCount ?? 0
-        count += landmarks.leftEyebrow?.pointCount ?? 0
-        count += landmarks.rightEyebrow?.pointCount ?? 0
+        count += landmarks.leftEye.points.count
+        count += landmarks.rightEye.points.count
+        count += landmarks.nose.points.count
+        count += landmarks.outerLips.points.count
+        count += landmarks.innerLips.points.count
+        count += landmarks.faceContour.points.count
+        count += landmarks.leftEyebrow.points.count
+        count += landmarks.rightEyebrow.points.count
         self.totalPointsCount = count
     }
 }

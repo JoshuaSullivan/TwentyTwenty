@@ -42,9 +42,9 @@ struct DetectBarcodesView: View {
 
 /// Picker for selecting which barcode symbologies to detect
 struct SymbologyPicker: View {
-    @Binding var selectedSymbologies: Set<VNBarcodeSymbology>
+    @Binding var selectedSymbologies: Set<BarcodeSymbology>
 
-    private let commonSymbologies: [(VNBarcodeSymbology, String)] = [
+    private let commonSymbologies: [(BarcodeSymbology, String)] = [
         (.qr, "QR Code"),
         (.ean13, "EAN-13"),
         (.ean8, "EAN-8"),

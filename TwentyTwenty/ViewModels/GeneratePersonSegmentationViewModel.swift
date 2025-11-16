@@ -20,18 +20,18 @@ final class GeneratePersonSegmentationViewModel: BaseModelDetailViewModel {
     }
 
     var overlayImage: UIImage? {
-        guard !segmentationResults.isEmpty,
+        guard let result = segmentationResult,
               let image = selectedImage,
-              let firstMask = segmentationResults.first?.pixelBuffer else {
+              let maskImage = try? result.observation.cgImage else {
             return nil
         }
-        return OverlayRenderer.renderBitmapMask(firstMask, imageSize: image.size)
+        return UIImage(cgImage: maskImage)
     }
 
     // MARK: - Model-Specific State
 
-    /// Generated person segmentation results from the last analysis
-    var segmentationResults: [PersonSegmentation] = []
+    /// Generated person segmentation result from the last analysis
+    var segmentationResult: PersonSegmentation?
 
     /// Quality level for segmentation (accurate vs. balanced)
     var qualityLevel: GeneratePersonSegmentationRequest.QualityLevel = .balanced
@@ -52,17 +52,17 @@ final class GeneratePersonSegmentationViewModel: BaseModelDetailViewModel {
 
         isProcessing = true
         errorMessage = nil
-        segmentationResults = []
+        segmentationResult = nil
 
         do {
-            let (results, tracker) = try await PerformanceTracker.measure {
+            let (result, tracker) = try await PerformanceTracker.measure {
                 try await performPersonSegmentation(on: image)
             }
 
-            segmentationResults = results
+            segmentationResult = result
             statistics = PerformanceStatistics(from: tracker)
 
-            if segmentationResults.isEmpty {
+            if segmentationResult == nil {
                 errorMessage = "No people detected in the image"
             }
         } catch {
@@ -73,14 +73,14 @@ final class GeneratePersonSegmentationViewModel: BaseModelDetailViewModel {
     }
 
     func clearResults() {
-        segmentationResults = []
+        segmentationResult = nil
         errorMessage = nil
         statistics = nil
     }
 
     // MARK: - Private Methods
 
-    private func performPersonSegmentation(on image: UIImage) async throws -> [PersonSegmentation] {
+    private func performPersonSegmentation(on image: UIImage) async throws -> PersonSegmentation? {
         guard let cgImage = image.cgImage else {
             throw VisionError.invalidImage
         }
@@ -88,11 +88,9 @@ final class GeneratePersonSegmentationViewModel: BaseModelDetailViewModel {
         var request = GeneratePersonSegmentationRequest()
         request.qualityLevel = qualityLevel
 
-        let observations = try await request.perform(on: cgImage, orientation: nil)
+        let observation = try await request.perform(on: cgImage, orientation: nil)
 
-        return observations.enumerated().map { index, observation in
-            PersonSegmentation(from: observation, index: index)
-        }
+        return PersonSegmentation(from: observation)
     }
 }
 
@@ -101,13 +99,11 @@ final class GeneratePersonSegmentationViewModel: BaseModelDetailViewModel {
 /// Represents a person segmentation result
 struct PersonSegmentation: Identifiable {
     let id = UUID()
-    let index: Int
     let confidence: Float
-    let pixelBuffer: CVPixelBuffer
+    let observation: PixelBufferObservation
 
-    init(from observation: PixelBufferObservation, index: Int) {
-        self.index = index
+    init(from observation: PixelBufferObservation) {
         self.confidence = observation.confidence
-        self.pixelBuffer = observation.pixelBuffer
+        self.observation = observation
     }
 }

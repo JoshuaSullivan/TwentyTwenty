@@ -92,11 +92,9 @@ final class GenerateObjectnessBasedSaliencyImageViewModel: BaseModelDetailViewMo
         }
 
         let request = GenerateObjectnessBasedSaliencyImageRequest()
-        let observations = try await request.perform(on: cgImage, orientation: nil)
+        let observation = try await request.perform(on: cgImage, orientation: nil)
 
-        return observations.enumerated().map { index, observation in
-            ObjectnessSaliency(from: observation, index: index, imageSize: image.size)
-        }
+        return [ObjectnessSaliency(from: observation, index: 0, imageSize: image.size)]
     }
 }
 
@@ -114,13 +112,25 @@ struct ObjectnessSaliency: Identifiable {
         self.confidence = observation.confidence
 
         // Extract salient object regions
-        self.salientObjects = (observation.salientObjects ?? []).enumerated().map { objIndex, object in
-            let box = object.boundingBox
+        self.salientObjects = observation.salientObjects.enumerated().map { objIndex, object in
+            // Convert quadrilateral to bounding box
+            let points = [
+                object.topLeft,
+                object.topRight,
+                object.bottomRight,
+                object.bottomLeft
+            ]
+
+            let minX = points.map { $0.x }.min() ?? 0
+            let maxX = points.map { $0.x }.max() ?? 0
+            let minY = points.map { $0.y }.min() ?? 0
+            let maxY = points.map { $0.y }.max() ?? 0
+
             let boundingBox = CGRect(
-                x: box.minX * imageSize.width,
-                y: (1 - box.maxY) * imageSize.height,
-                width: box.width * imageSize.width,
-                height: box.height * imageSize.height
+                x: minX * imageSize.width,
+                y: (1 - maxY) * imageSize.height,
+                width: (maxX - minX) * imageSize.width,
+                height: (maxY - minY) * imageSize.height
             )
             return SalientObject(index: objIndex, confidence: object.confidence, boundingBox: boundingBox)
         }

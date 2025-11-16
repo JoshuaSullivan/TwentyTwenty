@@ -93,10 +93,12 @@ final class DetectContoursViewModel: BaseModelDetailViewModel {
         var request = DetectContoursRequest()
         request.contrastAdjustment = contrastThreshold
 
-        let observations = try await request.perform(on: cgImage, orientation: nil)
+        let observation = try await request.perform(on: cgImage, orientation: nil)
 
-        return observations.enumerated().compactMap { index, observation in
-            DetectedContour(from: observation, index: index)
+        if let contour = DetectedContour(from: observation) {
+            return [contour]
+        } else {
+            return []
         }
     }
 }
@@ -111,10 +113,10 @@ struct DetectedContour: Identifiable {
     let pointCount: Int
     let childContourCount: Int
     let aspectRatio: Float
-    let contours: [Contour]
+    let contours: [ContoursObservation.Contour]
 
-    init?(from observation: ContoursObservation, index: Int) {
-        self.index = index
+    init?(from observation: ContoursObservation) {
+        self.index = 0
         self.confidence = observation.confidence
 
         // Get all contours (top-level and children)
@@ -126,7 +128,7 @@ struct DetectedContour: Identifiable {
         }
 
         self.pointCount = topLevelContour.normalizedPoints.count
-        self.childContourCount = topLevelContour.childContourCount
+        self.childContourCount = topLevelContour.childContours.count
         self.aspectRatio = topLevelContour.aspectRatio
     }
 }

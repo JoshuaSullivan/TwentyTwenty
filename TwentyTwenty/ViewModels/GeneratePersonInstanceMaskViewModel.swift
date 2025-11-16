@@ -79,10 +79,12 @@ final class GeneratePersonInstanceMaskViewModel: BaseModelDetailViewModel {
         }
 
         let request = GeneratePersonInstanceMaskRequest()
-        let observations = try await request.perform(on: cgImage, orientation: nil)
+        let observation = try await request.perform(on: cgImage, orientation: nil)
 
-        return observations.enumerated().map { index, observation in
-            PersonInstance(from: observation, index: index)
+        if let observation = observation {
+            return [PersonInstance(from: observation)]
+        } else {
+            return []
         }
     }
 }
@@ -92,12 +94,10 @@ final class GeneratePersonInstanceMaskViewModel: BaseModelDetailViewModel {
 /// Represents a person instance with segmentation mask
 struct PersonInstance: Identifiable {
     let id = UUID()
-    let index: Int
     let confidence: Float
     let instanceCount: Int
 
-    init(from observation: InstanceMaskObservation, index: Int) {
-        self.index = index
+    init(from observation: InstanceMaskObservation) {
         self.confidence = observation.confidence
 
         // Get all instances from the mask
