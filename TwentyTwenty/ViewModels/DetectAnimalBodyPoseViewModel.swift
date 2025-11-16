@@ -176,34 +176,19 @@ struct AnimalBodyPose: Identifiable {
 
         var detectedJoints: [AnimalJoint] = []
 
-        // Define all animal joint types we want to detect
-        let jointTypes: [VNAnimalBodyPoseObservation.JointName] = [
-            .leftEarTop, .rightEarTop,
-            .leftEarMiddle, .rightEarMiddle,
-            .leftEarBottom, .rightEarBottom,
-            .leftEye, .rightEye,
-            .nose,
-            .neck,
-            .leftFrontElbow, .rightFrontElbow,
-            .leftFrontKnee, .rightFrontKnee,
-            .leftFrontPaw, .rightFrontPaw,
-            .leftBackElbow, .rightBackElbow,
-            .leftBackKnee, .rightBackKnee,
-            .leftBackPaw, .rightBackPaw,
-            .tailTop, .tailMiddle, .tailBottom
-        ]
-
-        for jointType in jointTypes {
-            if let point = try? observation.recognizedPoint(jointType),
-               point.confidence > 0.1 {
-                detectedJoints.append(AnimalJoint(
-                    name: jointType.rawValue.rawValue,
-                    position: CGPoint(
-                        x: point.location.x * imageSize.width,
-                        y: (1 - point.location.y) * imageSize.height
-                    ),
-                    confidence: point.confidence
-                ))
+        // Get all recognized points using the animal body pose specific joint group
+        if let allPoints = try? observation.recognizedPoints(VNAnimalBodyPoseObservation.JointsGroupName.all) {
+            for (jointName, point) in allPoints {
+                if point.confidence > 0.1 {
+                    detectedJoints.append(AnimalJoint(
+                        name: jointName.rawValue.rawValue,
+                        position: CGPoint(
+                            x: point.location.x * imageSize.width,
+                            y: (1 - point.location.y) * imageSize.height
+                        ),
+                        confidence: point.confidence
+                    ))
+                }
             }
         }
 

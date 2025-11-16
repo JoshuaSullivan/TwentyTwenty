@@ -174,32 +174,19 @@ struct HumanHandPose: Identifiable {
 
         var detectedJoints: [HandJoint] = []
 
-        // Define all hand joint types we want to detect
-        let jointTypes: [VNHumanHandPoseObservation.JointName] = [
-            .wrist,
-            // Thumb
-            .thumbCMC, .thumbMP, .thumbIP, .thumbTip,
-            // Index finger
-            .indexMCP, .indexPIP, .indexDIP, .indexTip,
-            // Middle finger
-            .middleMCP, .middlePIP, .middleDIP, .middleTip,
-            // Ring finger
-            .ringMCP, .ringPIP, .ringDIP, .ringTip,
-            // Little finger
-            .littleMCP, .littlePIP, .littleDIP, .littleTip
-        ]
-
-        for jointType in jointTypes {
-            if let point = try? observation.recognizedPoint(jointType),
-               point.confidence > 0.1 {
-                detectedJoints.append(HandJoint(
-                    name: jointType.rawValue.rawValue,
-                    position: CGPoint(
-                        x: point.location.x * imageSize.width,
-                        y: (1 - point.location.y) * imageSize.height
-                    ),
-                    confidence: point.confidence
-                ))
+        // Get all recognized points using the human hand pose specific joint group
+        if let allPoints = try? observation.recognizedPoints(VNHumanHandPoseObservation.JointsGroupName.all) {
+            for (jointName, point) in allPoints {
+                if point.confidence > 0.1 {
+                    detectedJoints.append(HandJoint(
+                        name: jointName.rawValue.rawValue,
+                        position: CGPoint(
+                            x: point.location.x * imageSize.width,
+                            y: (1 - point.location.y) * imageSize.height
+                        ),
+                        confidence: point.confidence
+                    ))
+                }
             }
         }
 

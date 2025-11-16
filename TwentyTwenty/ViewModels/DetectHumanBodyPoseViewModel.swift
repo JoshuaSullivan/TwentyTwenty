@@ -170,30 +170,19 @@ struct HumanBodyPose: Identifiable {
 
         var detectedJoints: [BodyJoint] = []
 
-        // Define all body joint types we want to detect
-        let jointTypes: [VNHumanBodyPoseObservation.JointName] = [
-            .nose,
-            .leftEye, .rightEye,
-            .leftEar, .rightEar,
-            .leftShoulder, .rightShoulder,
-            .leftElbow, .rightElbow,
-            .leftWrist, .rightWrist,
-            .leftHip, .rightHip,
-            .leftKnee, .rightKnee,
-            .leftAnkle, .rightAnkle
-        ]
-
-        for jointType in jointTypes {
-            if let point = try? observation.recognizedPoint(jointType),
-               point.confidence > 0.1 {
-                detectedJoints.append(BodyJoint(
-                    name: jointType.rawValue.rawValue,
-                    position: CGPoint(
-                        x: point.location.x * imageSize.width,
-                        y: (1 - point.location.y) * imageSize.height
-                    ),
-                    confidence: point.confidence
-                ))
+        // Get all recognized points using the human body pose specific joint group
+        if let allPoints = try? observation.recognizedPoints(VNHumanBodyPoseObservation.JointsGroupName.all) {
+            for (jointName, point) in allPoints {
+                if point.confidence > 0.1 {
+                    detectedJoints.append(BodyJoint(
+                        name: jointName.rawValue.rawValue,
+                        position: CGPoint(
+                            x: point.location.x * imageSize.width,
+                            y: (1 - point.location.y) * imageSize.height
+                        ),
+                        confidence: point.confidence
+                    ))
+                }
             }
         }
 
