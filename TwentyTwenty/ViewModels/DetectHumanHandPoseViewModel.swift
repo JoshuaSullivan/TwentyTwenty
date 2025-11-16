@@ -84,58 +84,54 @@ final class DetectHumanHandPoseViewModel: BaseModelDetailViewModel {
             throw VisionError.invalidImage
         }
 
-        let request = VNDetectHumanHandPoseRequest()
-        request.maximumHandCount = maximumHandCount
+        let request = DetectHumanHandPoseRequest()
+        // Note: maximumHandCount is not a property on modern API request
+        // The request returns all detected hands
 
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try handler.perform([request])
+        let observations = try await request.perform(on: cgImage, orientation: nil)
 
-        guard let results = request.results else {
-            return []
-        }
-
-        return results.enumerated().compactMap { index, observation in
+        return observations.enumerated().compactMap { index, observation in
             HumanHandPose(from: observation, index: index, imageSize: image.size)
         }
     }
 
     private func generateHandPoseOverlay(for image: UIImage) -> UIImage {
         let poses = detectedHands.map { hand -> (joints: [CGPoint], connections: [(Int, Int)]) in
-            // Create a dictionary mapping actual joint names to indices
+            // Create a dictionary mapping joint names (rawValue strings) to indices
             var jointMap: [String: Int] = [:]
             let jointPoints = hand.joints.enumerated().map { index, joint -> CGPoint in
                 jointMap[joint.name] = index
                 return joint.position
             }
 
-            // Define skeleton connections using actual Vision framework constant names
+            // Define skeleton connections using modern API enum rawValues
             var connections: [(Int, Int)] = []
             let connectionPairs: [(String, String)] = [
                 // Thumb
-                ("VNHumanHandPoseObservationJointNameWrist", "VNHumanHandPoseObservationJointNameThumbCMC"),
-                ("VNHumanHandPoseObservationJointNameThumbCMC", "VNHumanHandPoseObservationJointNameThumbMP"),
-                ("VNHumanHandPoseObservationJointNameThumbMP", "VNHumanHandPoseObservationJointNameThumbIP"),
-                ("VNHumanHandPoseObservationJointNameThumbIP", "VNHumanHandPoseObservationJointNameThumbTip"),
+                ("wrist", "thumbCMC"),
+                ("thumbCMC", "thumbMP"),
+                ("thumbMP", "thumbIP"),
+                ("thumbIP", "thumbTip"),
                 // Index finger
-                ("VNHumanHandPoseObservationJointNameWrist", "VNHumanHandPoseObservationJointNameIndexMCP"),
-                ("VNHumanHandPoseObservationJointNameIndexMCP", "VNHumanHandPoseObservationJointNameIndexPIP"),
-                ("VNHumanHandPoseObservationJointNameIndexPIP", "VNHumanHandPoseObservationJointNameIndexDIP"),
-                ("VNHumanHandPoseObservationJointNameIndexDIP", "VNHumanHandPoseObservationJointNameIndexTip"),
+                ("wrist", "indexMCP"),
+                ("indexMCP", "indexPIP"),
+                ("indexPIP", "indexDIP"),
+                ("indexDIP", "indexTip"),
                 // Middle finger
-                ("VNHumanHandPoseObservationJointNameWrist", "VNHumanHandPoseObservationJointNameMiddleMCP"),
-                ("VNHumanHandPoseObservationJointNameMiddleMCP", "VNHumanHandPoseObservationJointNameMiddlePIP"),
-                ("VNHumanHandPoseObservationJointNameMiddlePIP", "VNHumanHandPoseObservationJointNameMiddleDIP"),
-                ("VNHumanHandPoseObservationJointNameMiddleDIP", "VNHumanHandPoseObservationJointNameMiddleTip"),
+                ("wrist", "middleMCP"),
+                ("middleMCP", "middlePIP"),
+                ("middlePIP", "middleDIP"),
+                ("middleDIP", "middleTip"),
                 // Ring finger
-                ("VNHumanHandPoseObservationJointNameWrist", "VNHumanHandPoseObservationJointNameRingMCP"),
-                ("VNHumanHandPoseObservationJointNameRingMCP", "VNHumanHandPoseObservationJointNameRingPIP"),
-                ("VNHumanHandPoseObservationJointNameRingPIP", "VNHumanHandPoseObservationJointNameRingDIP"),
-                ("VNHumanHandPoseObservationJointNameRingDIP", "VNHumanHandPoseObservationJointNameRingTip"),
+                ("wrist", "ringMCP"),
+                ("ringMCP", "ringPIP"),
+                ("ringPIP", "ringDIP"),
+                ("ringDIP", "ringTip"),
                 // Little finger
-                ("VNHumanHandPoseObservationJointNameWrist", "VNHumanHandPoseObservationJointNameLittleMCP"),
-                ("VNHumanHandPoseObservationJointNameLittleMCP", "VNHumanHandPoseObservationJointNameLittlePIP"),
-                ("VNHumanHandPoseObservationJointNameLittlePIP", "VNHumanHandPoseObservationJointNameLittleDIP"),
-                ("VNHumanHandPoseObservationJointNameLittleDIP", "VNHumanHandPoseObservationJointNameLittleTip")
+                ("wrist", "littleMCP"),
+                ("littleMCP", "littlePIP"),
+                ("littlePIP", "littleDIP"),
+                ("littleDIP", "littleTip")
             ]
 
             for (from, to) in connectionPairs {
@@ -159,29 +155,28 @@ struct HumanHandPose: Identifiable {
     let id = UUID()
     let index: Int
     let confidence: Float
-    let chirality: VNChirality
+    let chirality: HumanHandPoseObservation.Chirality?
     let joints: [HandJoint]
 
-    init?(from observation: VNHumanHandPoseObservation, index: Int, imageSize: CGSize) {
+    init?(from observation: HumanHandPoseObservation, index: Int, imageSize: CGSize) {
         self.index = index
         self.confidence = observation.confidence
         self.chirality = observation.chirality
 
         var detectedJoints: [HandJoint] = []
 
-        // Get all recognized points using the modern API with type inference
-        if let allPoints = try? observation.recognizedPoints(.all) {
-            for (jointName, point) in allPoints {
-                if point.confidence > 0.1 {
-                    detectedJoints.append(HandJoint(
-                        name: jointName.rawValue.rawValue,
-                        position: CGPoint(
-                            x: point.location.x * imageSize.width,
-                            y: (1 - point.location.y) * imageSize.height
-                        ),
-                        confidence: point.confidence
-                    ))
-                }
+        // Get all joints using the modern API
+        let allJoints = observation.allJoints(in: nil)
+        for (jointName, joint) in allJoints {
+            if joint.confidence > 0.1 {
+                detectedJoints.append(HandJoint(
+                    name: jointName.rawValue,
+                    position: CGPoint(
+                        x: joint.location.x * imageSize.width,
+                        y: (1 - joint.location.y) * imageSize.height
+                    ),
+                    confidence: joint.confidence
+                ))
             }
         }
 
@@ -194,13 +189,14 @@ struct HumanHandPose: Identifiable {
     }
 
     var chiralityDescription: String {
+        guard let chirality = chirality else {
+            return "Unknown Hand"
+        }
         switch chirality {
         case .left:
             return "Left Hand"
         case .right:
             return "Right Hand"
-        @unknown default:
-            return "Unknown Hand"
         }
     }
 

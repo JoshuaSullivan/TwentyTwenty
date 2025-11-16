@@ -81,60 +81,54 @@ final class DetectHumanBodyPoseViewModel: BaseModelDetailViewModel {
             throw VisionError.invalidImage
         }
 
-        let request = VNDetectHumanBodyPoseRequest()
+        let request = DetectHumanBodyPoseRequest()
+        let observations = try await request.perform(on: cgImage, orientation: nil)
 
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try handler.perform([request])
-
-        guard let results = request.results else {
-            return []
-        }
-
-        return results.enumerated().compactMap { index, observation in
+        return observations.enumerated().compactMap { index, observation in
             HumanBodyPose(from: observation, index: index, imageSize: image.size)
         }
     }
 
     private func generatePoseOverlay(for image: UIImage) -> UIImage {
         let poses = detectedPoses.map { pose -> (joints: [CGPoint], connections: [(Int, Int)]) in
-            // Create a dictionary mapping actual joint names to indices
+            // Create a dictionary mapping joint names (rawValue strings) to indices
             var jointMap: [String: Int] = [:]
             let jointPoints = pose.joints.enumerated().map { index, joint -> CGPoint in
                 jointMap[joint.name] = index
                 return joint.position
             }
 
-            // Define skeleton connections using actual Vision framework constant names
+            // Define skeleton connections using modern API enum rawValues
             var connections: [(Int, Int)] = []
             let connectionPairs: [(String, String)] = [
                 // Head/face
-                ("VNHumanBodyPoseObservationJointNameNose", "VNHumanBodyPoseObservationJointNameLeftEye"),
-                ("VNHumanBodyPoseObservationJointNameNose", "VNHumanBodyPoseObservationJointNameRightEye"),
-                ("VNHumanBodyPoseObservationJointNameLeftEye", "VNHumanBodyPoseObservationJointNameLeftEar"),
-                ("VNHumanBodyPoseObservationJointNameRightEye", "VNHumanBodyPoseObservationJointNameRightEar"),
+                ("nose", "leftEye"),
+                ("nose", "rightEye"),
+                ("leftEye", "leftEar"),
+                ("rightEye", "rightEar"),
                 // Neck to shoulders
-                ("VNHumanBodyPoseObservationJointNameNeck", "VNHumanBodyPoseObservationJointNameLeftShoulder"),
-                ("VNHumanBodyPoseObservationJointNameNeck", "VNHumanBodyPoseObservationJointNameRightShoulder"),
+                ("neck", "leftShoulder"),
+                ("neck", "rightShoulder"),
                 // Upper body
-                ("VNHumanBodyPoseObservationJointNameLeftShoulder", "VNHumanBodyPoseObservationJointNameRightShoulder"),
+                ("leftShoulder", "rightShoulder"),
                 // Spine (shoulders to hips via root)
-                ("VNHumanBodyPoseObservationJointNameNeck", "VNHumanBodyPoseObservationJointNameRoot"),
-                ("VNHumanBodyPoseObservationJointNameRoot", "VNHumanBodyPoseObservationJointNameLeftHip"),
-                ("VNHumanBodyPoseObservationJointNameRoot", "VNHumanBodyPoseObservationJointNameRightHip"),
+                ("neck", "root"),
+                ("root", "leftHip"),
+                ("root", "rightHip"),
                 // Hips
-                ("VNHumanBodyPoseObservationJointNameLeftHip", "VNHumanBodyPoseObservationJointNameRightHip"),
+                ("leftHip", "rightHip"),
                 // Left arm
-                ("VNHumanBodyPoseObservationJointNameLeftShoulder", "VNHumanBodyPoseObservationJointNameLeftElbow"),
-                ("VNHumanBodyPoseObservationJointNameLeftElbow", "VNHumanBodyPoseObservationJointNameLeftWrist"),
+                ("leftShoulder", "leftElbow"),
+                ("leftElbow", "leftWrist"),
                 // Right arm
-                ("VNHumanBodyPoseObservationJointNameRightShoulder", "VNHumanBodyPoseObservationJointNameRightElbow"),
-                ("VNHumanBodyPoseObservationJointNameRightElbow", "VNHumanBodyPoseObservationJointNameRightWrist"),
+                ("rightShoulder", "rightElbow"),
+                ("rightElbow", "rightWrist"),
                 // Left leg
-                ("VNHumanBodyPoseObservationJointNameLeftHip", "VNHumanBodyPoseObservationJointNameLeftKnee"),
-                ("VNHumanBodyPoseObservationJointNameLeftKnee", "VNHumanBodyPoseObservationJointNameLeftAnkle"),
+                ("leftHip", "leftKnee"),
+                ("leftKnee", "leftAnkle"),
                 // Right leg
-                ("VNHumanBodyPoseObservationJointNameRightHip", "VNHumanBodyPoseObservationJointNameRightKnee"),
-                ("VNHumanBodyPoseObservationJointNameRightKnee", "VNHumanBodyPoseObservationJointNameRightAnkle")
+                ("rightHip", "rightKnee"),
+                ("rightKnee", "rightAnkle")
             ]
 
             for (from, to) in connectionPairs {
@@ -160,25 +154,24 @@ struct HumanBodyPose: Identifiable {
     let confidence: Float
     let joints: [BodyJoint]
 
-    init?(from observation: VNHumanBodyPoseObservation, index: Int, imageSize: CGSize) {
+    init?(from observation: HumanBodyPoseObservation, index: Int, imageSize: CGSize) {
         self.index = index
         self.confidence = observation.confidence
 
         var detectedJoints: [BodyJoint] = []
 
-        // Get all recognized points using the modern API with type inference
-        if let allPoints = try? observation.recognizedPoints(.all) {
-            for (jointName, point) in allPoints {
-                if point.confidence > 0.1 {
-                    detectedJoints.append(BodyJoint(
-                        name: jointName.rawValue.rawValue,
-                        position: CGPoint(
-                            x: point.location.x * imageSize.width,
-                            y: (1 - point.location.y) * imageSize.height
-                        ),
-                        confidence: point.confidence
-                    ))
-                }
+        // Get all joints using the modern API
+        let allJoints = observation.allJoints(in: nil)
+        for (jointName, joint) in allJoints {
+            if joint.confidence > 0.1 {
+                detectedJoints.append(BodyJoint(
+                    name: jointName.rawValue,
+                    position: CGPoint(
+                        x: joint.location.x * imageSize.width,
+                        y: (1 - joint.location.y) * imageSize.height
+                    ),
+                    confidence: joint.confidence
+                ))
             }
         }
 

@@ -81,65 +81,59 @@ final class DetectAnimalBodyPoseViewModel: BaseModelDetailViewModel {
             throw VisionError.invalidImage
         }
 
-        let request = VNDetectAnimalBodyPoseRequest()
+        let request = DetectAnimalBodyPoseRequest()
+        let observations = try await request.perform(on: cgImage, orientation: nil)
 
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try handler.perform([request])
-
-        guard let results = request.results else {
-            return []
-        }
-
-        return results.enumerated().compactMap { index, observation in
+        return observations.enumerated().compactMap { index, observation in
             AnimalBodyPose(from: observation, index: index, imageSize: image.size)
         }
     }
 
     private func generatePoseOverlay(for image: UIImage) -> UIImage {
         let poses = detectedPoses.map { pose -> (joints: [CGPoint], connections: [(Int, Int)]) in
-            // Create a dictionary mapping actual joint names to indices
+            // Create a dictionary mapping joint names (rawValue strings) to indices
             var jointMap: [String: Int] = [:]
             let jointPoints = pose.joints.enumerated().map { index, joint -> CGPoint in
                 jointMap[joint.name] = index
                 return joint.position
             }
 
-            // Define skeleton connections using actual Vision framework constant names
+            // Define skeleton connections using modern API enum rawValues
             var connections: [(Int, Int)] = []
             let connectionPairs: [(String, String)] = [
                 // Ears (outer to inner)
-                ("VNAnimalBodyPoseObservationJointNameLeftEarTop", "VNAnimalBodyPoseObservationJointNameLeftEarMiddle"),
-                ("VNAnimalBodyPoseObservationJointNameLeftEarMiddle", "VNAnimalBodyPoseObservationJointNameLeftEarBottom"),
-                ("VNAnimalBodyPoseObservationJointNameRightEarTop", "VNAnimalBodyPoseObservationJointNameRightEarMiddle"),
-                ("VNAnimalBodyPoseObservationJointNameRightEarMiddle", "VNAnimalBodyPoseObservationJointNameRightEarBottom"),
+                ("leftEarTop", "leftEarMiddle"),
+                ("leftEarMiddle", "leftEarBottom"),
+                ("rightEarTop", "rightEarMiddle"),
+                ("rightEarMiddle", "rightEarBottom"),
                 // Head - ears to eyes
-                ("VNAnimalBodyPoseObservationJointNameLeftEarBottom", "VNAnimalBodyPoseObservationJointNameLeftEye"),
-                ("VNAnimalBodyPoseObservationJointNameRightEarBottom", "VNAnimalBodyPoseObservationJointNameRightEye"),
+                ("leftEarBottom", "leftEye"),
+                ("rightEarBottom", "rightEye"),
                 // Head - eyes to nose
-                ("VNAnimalBodyPoseObservationJointNameLeftEye", "VNAnimalBodyPoseObservationJointNameNose"),
-                ("VNAnimalBodyPoseObservationJointNameRightEye", "VNAnimalBodyPoseObservationJointNameNose"),
+                ("leftEye", "nose"),
+                ("rightEye", "nose"),
                 // Nose to neck
-                ("VNAnimalBodyPoseObservationJointNameNose", "VNAnimalBodyPoseObservationJointNameNeck"),
+                ("nose", "neck"),
                 // Front left leg
-                ("VNAnimalBodyPoseObservationJointNameNeck", "VNAnimalBodyPoseObservationJointNameLeftFrontElbow"),
-                ("VNAnimalBodyPoseObservationJointNameLeftFrontElbow", "VNAnimalBodyPoseObservationJointNameLeftFrontKnee"),
-                ("VNAnimalBodyPoseObservationJointNameLeftFrontKnee", "VNAnimalBodyPoseObservationJointNameLeftFrontPaw"),
+                ("neck", "leftFrontElbow"),
+                ("leftFrontElbow", "leftFrontKnee"),
+                ("leftFrontKnee", "leftFrontPaw"),
                 // Front right leg
-                ("VNAnimalBodyPoseObservationJointNameNeck", "VNAnimalBodyPoseObservationJointNameRightFrontElbow"),
-                ("VNAnimalBodyPoseObservationJointNameRightFrontElbow", "VNAnimalBodyPoseObservationJointNameRightFrontKnee"),
-                ("VNAnimalBodyPoseObservationJointNameRightFrontKnee", "VNAnimalBodyPoseObservationJointNameRightFrontPaw"),
+                ("neck", "rightFrontElbow"),
+                ("rightFrontElbow", "rightFrontKnee"),
+                ("rightFrontKnee", "rightFrontPaw"),
                 // Back left leg
-                ("VNAnimalBodyPoseObservationJointNameNeck", "VNAnimalBodyPoseObservationJointNameLeftBackElbow"),
-                ("VNAnimalBodyPoseObservationJointNameLeftBackElbow", "VNAnimalBodyPoseObservationJointNameLeftBackKnee"),
-                ("VNAnimalBodyPoseObservationJointNameLeftBackKnee", "VNAnimalBodyPoseObservationJointNameLeftBackPaw"),
+                ("neck", "leftBackElbow"),
+                ("leftBackElbow", "leftBackKnee"),
+                ("leftBackKnee", "leftBackPaw"),
                 // Back right leg
-                ("VNAnimalBodyPoseObservationJointNameNeck", "VNAnimalBodyPoseObservationJointNameRightBackElbow"),
-                ("VNAnimalBodyPoseObservationJointNameRightBackElbow", "VNAnimalBodyPoseObservationJointNameRightBackKnee"),
-                ("VNAnimalBodyPoseObservationJointNameRightBackKnee", "VNAnimalBodyPoseObservationJointNameRightBackPaw"),
+                ("neck", "rightBackElbow"),
+                ("rightBackElbow", "rightBackKnee"),
+                ("rightBackKnee", "rightBackPaw"),
                 // Tail
-                ("VNAnimalBodyPoseObservationJointNameNeck", "VNAnimalBodyPoseObservationJointNameTailTop"),
-                ("VNAnimalBodyPoseObservationJointNameTailTop", "VNAnimalBodyPoseObservationJointNameTailMiddle"),
-                ("VNAnimalBodyPoseObservationJointNameTailMiddle", "VNAnimalBodyPoseObservationJointNameTailBottom")
+                ("neck", "tailTop"),
+                ("tailTop", "tailMiddle"),
+                ("tailMiddle", "tailBottom")
             ]
 
             for (from, to) in connectionPairs {
@@ -165,25 +159,24 @@ struct AnimalBodyPose: Identifiable {
     let confidence: Float
     let joints: [AnimalJoint]
 
-    init?(from observation: VNAnimalBodyPoseObservation, index: Int, imageSize: CGSize) {
+    init?(from observation: AnimalBodyPoseObservation, index: Int, imageSize: CGSize) {
         self.index = index
         self.confidence = observation.confidence
 
         var detectedJoints: [AnimalJoint] = []
 
-        // Get all recognized points using the modern API with type inference
-        if let allPoints = try? observation.recognizedPoints(.all) {
-            for (jointName, point) in allPoints {
-                if point.confidence > 0.1 {
-                    detectedJoints.append(AnimalJoint(
-                        name: jointName.rawValue.rawValue,
-                        position: CGPoint(
-                            x: point.location.x * imageSize.width,
-                            y: (1 - point.location.y) * imageSize.height
-                        ),
-                        confidence: point.confidence
-                    ))
-                }
+        // Get all joints using the modern API
+        let allJoints = observation.allJoints(in: nil)
+        for (jointName, joint) in allJoints {
+            if joint.confidence > 0.1 {
+                detectedJoints.append(AnimalJoint(
+                    name: jointName.rawValue,
+                    position: CGPoint(
+                        x: joint.location.x * imageSize.width,
+                        y: (1 - joint.location.y) * imageSize.height
+                    ),
+                    confidence: joint.confidence
+                ))
             }
         }
 
