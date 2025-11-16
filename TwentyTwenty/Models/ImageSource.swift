@@ -13,6 +13,18 @@ enum ImageSource {
     case photoLibrary
 }
 
+/// Represents the source of a video for Vision model processing
+enum VideoSource {
+    /// Video bundled with the app
+    case bundled(BundledVideo)
+
+    /// Video from the device camera
+    case camera
+
+    /// Video from the device photo library
+    case photoLibrary
+}
+
 /// Represents a bundled sample image
 struct BundledImage: Identifiable, Hashable {
     /// Unique identifier
@@ -104,5 +116,45 @@ struct BundledImageRegistry {
     static func images(containing contentTypes: Set<ImageContentType>) -> [BundledImage] {
         guard !contentTypes.isEmpty else { return allImages }
         return allImages.filter { !$0.contentTypes.isDisjoint(with: contentTypes) }
+    }
+}
+
+/// Represents a bundled sample video
+struct BundledVideo: Identifiable, Hashable {
+    /// Unique identifier
+    let id: String
+
+    /// Display name of the video
+    let name: String
+
+    /// Filename of the video in the Resources folder
+    let filename: String
+
+    /// Brief description of what the video contains
+    let description: String
+
+    /// Categories of content in the video (for filtering appropriate models)
+    let contentTypes: Set<ImageContentType>
+}
+
+/// Registry of all bundled sample videos
+struct BundledVideoRegistry {
+    /// All available bundled videos
+    static let allVideos: [BundledVideo] = [
+        BundledVideo(
+            id: "cat-video",
+            name: "Cat Video",
+            filename: "cat-video.mp4",
+            description: "Video of a cat for animal tracking and motion analysis",
+            contentTypes: [.animals, .objects]
+        ),
+    ]
+
+    /// Returns videos containing specific content types
+    /// - Parameter contentTypes: Set of content types to filter by
+    /// - Returns: Array of videos containing any of the specified content types
+    static func videos(containing contentTypes: Set<ImageContentType>) -> [BundledVideo] {
+        guard !contentTypes.isEmpty else { return allVideos }
+        return allVideos.filter { !$0.contentTypes.isDisjoint(with: contentTypes) }
     }
 }
