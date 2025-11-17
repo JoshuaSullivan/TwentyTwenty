@@ -10,13 +10,21 @@ final class DetectHumanBodyPose3DViewModel: BaseModelDetailViewModel {
     // MARK: - BaseModelDetailViewModel Conformance
 
     let model: VisionModel
-    var selectedImage: UIImage?
+    var selectedImage: UIImage? {
+        didSet {
+            clearResults()
+        }
+    }
     var isProcessing = false
     var errorMessage: String?
     var statistics: PerformanceStatistics?
 
     var recommendedContentTypes: Set<ImageContentType> {
         [.people]
+    }
+
+    var supportsColorTinting: Bool {
+        false
     }
 
     // MARK: - Model-Specific State
@@ -110,7 +118,7 @@ struct HumanBodyPose3D: Identifiable {
         ]
 
         for jointType in jointTypes {
-            if let point = try? observation.joint(for: jointType) {
+            if let point = observation.joint(for: jointType) {
                 let pos = point.localPosition.columns.3
                 if pos.x.isFinite && pos.y.isFinite && pos.z.isFinite {
                     detectedJoints.append(BodyJoint3D(

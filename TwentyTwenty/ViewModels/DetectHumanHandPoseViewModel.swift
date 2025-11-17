@@ -10,13 +10,21 @@ final class DetectHumanHandPoseViewModel: BaseModelDetailViewModel {
     // MARK: - BaseModelDetailViewModel Conformance
 
     let model: VisionModel
-    var selectedImage: UIImage?
+    var selectedImage: UIImage? {
+        didSet {
+            clearResults()
+        }
+    }
     var isProcessing = false
     var errorMessage: String?
     var statistics: PerformanceStatistics?
 
     var recommendedContentTypes: Set<ImageContentType> {
         [.people]
+    }
+
+    var supportsColorTinting: Bool {
+        false
     }
 
     var overlayImage: UIImage? {
@@ -220,6 +228,8 @@ struct HumanHandPose: Identifiable {
             return "Left Hand"
         case .right:
             return "Right Hand"
+        @unknown default:
+            return "Unknown Hand"
         }
     }
 

@@ -119,20 +119,20 @@ struct FeaturePrintCard: View {
                         .fontWeight(.semibold)
                         .foregroundStyle(.secondary)
 
-                    HStack(spacing: 2) {
-                        ForEach(0..<min(50, result.elementCount), id: \.self) { _ in
+                    let gridColumns = Array(repeating: GridItem(.flexible(), spacing: 1), count: 32)
+
+                    LazyVGrid(columns: gridColumns, spacing: 1) {
+                        ForEach(0..<768, id: \.self) { _ in
                             Rectangle()
                                 .fill(Color.accentColor.opacity(Double.random(in: 0.3...1.0)))
-                                .frame(height: 20)
+                                .aspectRatio(1, contentMode: .fit)
                         }
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 4))
 
-                    if result.elementCount > 50 {
-                        Text("Showing 50 of \(result.elementCount) dimensions")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
+                    Text("32×24 grid (768 dimensions)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
             }
         }

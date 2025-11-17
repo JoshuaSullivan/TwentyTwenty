@@ -10,7 +10,11 @@ final class DetectFaceRectanglesViewModel: BaseModelDetailViewModel {
     // MARK: - BaseModelDetailViewModel Conformance
 
     let model: VisionModel
-    var selectedImage: UIImage?
+    var selectedImage: UIImage? {
+        didSet {
+            clearResults()
+        }
+    }
     var isProcessing = false
     var errorMessage: String?
     var statistics: PerformanceStatistics?

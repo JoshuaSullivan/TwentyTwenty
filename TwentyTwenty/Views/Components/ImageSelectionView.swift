@@ -15,6 +15,9 @@ struct ImageSelectionView: View {
     /// Binding to overlay color
     @Binding var overlayColor: UIColor
 
+    /// Whether the model supports color tinting
+    let supportsColorTinting: Bool
+
     /// State for overlay display
     @State private var showOverlay = true
     @State private var overlayOpacity = 0.7
@@ -30,12 +33,14 @@ struct ImageSelectionView: View {
         selectedImage: Binding<UIImage?>,
         recommendedContentTypes: Set<ImageContentType> = [],
         overlayImage: UIImage? = nil,
-        overlayColor: Binding<UIColor> = .constant(.systemGreen)
+        overlayColor: Binding<UIColor> = .constant(.systemGreen),
+        supportsColorTinting: Bool = true
     ) {
         self._selectedImage = selectedImage
         self.recommendedContentTypes = recommendedContentTypes
         self.overlayImage = overlayImage
         self._overlayColor = overlayColor
+        self.supportsColorTinting = supportsColorTinting
     }
 
     var body: some View {
@@ -155,6 +160,19 @@ struct ImageSelectionView: View {
 
             if showOverlay {
                 HStack(spacing: 16) {
+                    if supportsColorTinting {
+                        HStack {
+                            Text("Color")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            ColorPicker("Overlay Color", selection: Binding(
+                                get: { Color(uiColor: overlayColor) },
+                                set: { overlayColor = UIColor($0) }
+                            ))
+                            .labelsHidden()
+                        }
+                    }
+
                     HStack {
                         Text("Opacity")
                             .font(.caption)
@@ -165,17 +183,6 @@ struct ImageSelectionView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .frame(width: 35, alignment: .trailing)
-                    }
-
-                    HStack {
-                        Text("Color")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        ColorPicker("Overlay Color", selection: Binding(
-                            get: { Color(uiColor: overlayColor) },
-                            set: { overlayColor = UIColor($0) }
-                        ))
-                        .labelsHidden()
                     }
                 }
             }

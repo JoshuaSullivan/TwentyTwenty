@@ -29,6 +29,9 @@ protocol BaseModelDetailViewModel: AnyObject, Observable {
     /// Color for overlay rendering (non-pose overlays)
     var overlayColor: UIColor { get set }
 
+    /// Whether this model supports user-customizable color tinting of overlays
+    var supportsColorTinting: Bool { get }
+
     /// Processes the currently selected image with the Vision model
     func processImage() async
 
@@ -53,6 +56,11 @@ extension BaseModelDetailViewModel {
     var overlayColor: UIColor {
         get { .systemGreen }
         set { }
+    }
+
+    /// Default implementation - supports color tinting
+    var supportsColorTinting: Bool {
+        true
     }
 
     /// Default implementation clears error and statistics

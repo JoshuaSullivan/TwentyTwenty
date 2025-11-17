@@ -10,7 +10,11 @@ final class GeneratePersonSegmentationViewModel: BaseModelDetailViewModel {
     // MARK: - BaseModelDetailViewModel Conformance
 
     let model: VisionModel
-    var selectedImage: UIImage?
+    var selectedImage: UIImage? {
+        didSet {
+            clearResults()
+        }
+    }
     var isProcessing = false
     var errorMessage: String?
     var statistics: PerformanceStatistics?
@@ -20,18 +24,27 @@ final class GeneratePersonSegmentationViewModel: BaseModelDetailViewModel {
     }
 
     var overlayImage: UIImage? {
-        guard let result = segmentationResult,
-              let image = selectedImage,
-              let maskImage = try? result.observation.cgImage else {
-            return nil
+        renderedOverlay
+    }
+
+    var overlayColor: UIColor = UIColor(hue: 0.83, saturation: 1.0, brightness: 1.0, alpha: 1.0) {
+        didSet {
+            // Regenerate overlay when color changes
+            if let image = selectedImage, let result = segmentationResult {
+                Task {
+                    renderedOverlay = await generateSegmentationOverlay(for: image, result: result)
+                }
+            }
         }
-        return UIImage(cgImage: maskImage)
     }
 
     // MARK: - Model-Specific State
 
     /// Generated person segmentation result from the last analysis
     var segmentationResult: PersonSegmentation?
+
+    /// Pre-rendered overlay image
+    private var renderedOverlay: UIImage?
 
     /// Quality level for segmentation (accurate vs. balanced)
     var qualityLevel: GeneratePersonSegmentationRequest.QualityLevel = .balanced
@@ -53,6 +66,7 @@ final class GeneratePersonSegmentationViewModel: BaseModelDetailViewModel {
         isProcessing = true
         errorMessage = nil
         segmentationResult = nil
+        renderedOverlay = nil
 
         do {
             let (result, tracker) = try await PerformanceTracker.measure {
@@ -62,7 +76,9 @@ final class GeneratePersonSegmentationViewModel: BaseModelDetailViewModel {
             segmentationResult = result
             statistics = PerformanceStatistics(from: tracker)
 
-            if segmentationResult == nil {
+            if let result = segmentationResult {
+                renderedOverlay = await generateSegmentationOverlay(for: image, result: result)
+            } else {
                 errorMessage = "No people detected in the image"
             }
         } catch {
@@ -74,6 +90,7 @@ final class GeneratePersonSegmentationViewModel: BaseModelDetailViewModel {
 
     func clearResults() {
         segmentationResult = nil
+        renderedOverlay = nil
         errorMessage = nil
         statistics = nil
     }
@@ -91,6 +108,38 @@ final class GeneratePersonSegmentationViewModel: BaseModelDetailViewModel {
         let observation = try await request.perform(on: cgImage, orientation: nil)
 
         return PersonSegmentation(from: observation)
+    }
+
+    private func generateSegmentationOverlay(for image: UIImage, result: PersonSegmentation) async -> UIImage? {
+        // Extract pixel buffer from observation using cgImage as intermediate
+        guard let cgImage = try? result.observation.cgImage else {
+            return nil
+        }
+
+        // Convert CGImage to CVPixelBuffer for mask rendering
+        let width = cgImage.width
+        let height = cgImage.height
+        let attrs = [kCVPixelBufferCGImageCompatibilityKey: kCFBooleanTrue,
+                    kCVPixelBufferCGBitmapContextCompatibilityKey: kCFBooleanTrue] as CFDictionary
+        var pixelBuffer: CVPixelBuffer?
+        CVPixelBufferCreate(kCFAllocatorDefault, width, height,
+                          kCVPixelFormatType_32ARGB, attrs, &pixelBuffer)
+
+        guard let pixelBuffer = pixelBuffer else {
+            return nil
+        }
+
+        CVPixelBufferLockBaseAddress(pixelBuffer, [])
+        if let context = CGContext(data: CVPixelBufferGetBaseAddress(pixelBuffer),
+                              width: width, height: height,
+                              bitsPerComponent: 8, bytesPerRow: CVPixelBufferGetBytesPerRow(pixelBuffer),
+                              space: CGColorSpaceCreateDeviceRGB(),
+                              bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue) {
+            context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        }
+        CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
+
+        return await OverlayRenderer.renderBitmapMask(pixelBuffer, imageSize: image.size, tintColor: overlayColor)
     }
 }
 

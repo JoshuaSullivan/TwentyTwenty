@@ -10,13 +10,21 @@ final class DetectAnimalBodyPoseViewModel: BaseModelDetailViewModel {
     // MARK: - BaseModelDetailViewModel Conformance
 
     let model: VisionModel
-    var selectedImage: UIImage?
+    var selectedImage: UIImage? {
+        didSet {
+            clearResults()
+        }
+    }
     var isProcessing = false
     var errorMessage: String?
     var statistics: PerformanceStatistics?
 
     var recommendedContentTypes: Set<ImageContentType> {
         [.animals]
+    }
+
+    var supportsColorTinting: Bool {
+        false
     }
 
     var overlayImage: UIImage? {

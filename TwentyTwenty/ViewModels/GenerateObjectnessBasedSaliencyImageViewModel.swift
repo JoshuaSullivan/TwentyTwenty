@@ -10,7 +10,11 @@ final class GenerateObjectnessBasedSaliencyImageViewModel: BaseModelDetailViewMo
     // MARK: - BaseModelDetailViewModel Conformance
 
     let model: VisionModel
-    var selectedImage: UIImage?
+    var selectedImage: UIImage? {
+        didSet {
+            clearResults()
+        }
+    }
     var isProcessing = false
     var errorMessage: String?
     var statistics: PerformanceStatistics?
@@ -20,17 +24,30 @@ final class GenerateObjectnessBasedSaliencyImageViewModel: BaseModelDetailViewMo
     }
 
     var overlayImage: UIImage? {
-        guard !saliencyResults.isEmpty,
-              let image = selectedImage else {
-            return nil
+        renderedOverlay
+    }
+
+    var overlayColor: UIColor = UIColor(hue: 0.5, saturation: 1.0, brightness: 1.0, alpha: 1.0) {
+        didSet {
+            // Regenerate overlay when color changes
+            if let image = selectedImage, let heatMap = heatMapBuffer {
+                Task {
+                    renderedOverlay = await generateSaliencyOverlay(for: image, heatMap: heatMap)
+                }
+            }
         }
-        return generateSaliencyOverlay(for: image)
     }
 
     // MARK: - Model-Specific State
 
     /// Generated objectness saliency results from the last analysis
     var saliencyResults: [ObjectnessSaliency] = []
+
+    /// Stored heat map pixel buffer for overlay generation
+    private var heatMapBuffer: CVPixelBuffer?
+
+    /// Pre-rendered overlay image
+    private var renderedOverlay: UIImage?
 
     // MARK: - Initialization
 
@@ -49,17 +66,21 @@ final class GenerateObjectnessBasedSaliencyImageViewModel: BaseModelDetailViewMo
         isProcessing = true
         errorMessage = nil
         saliencyResults = []
+        renderedOverlay = nil
 
         do {
-            let (results, tracker) = try await PerformanceTracker.measure {
+            let ((results, heatMap), tracker) = try await PerformanceTracker.measure {
                 try await performObjectnessSaliencyGeneration(on: image)
             }
 
             saliencyResults = results
+            heatMapBuffer = heatMap
             statistics = PerformanceStatistics(from: tracker)
 
             if saliencyResults.isEmpty {
                 errorMessage = "Failed to generate saliency map"
+            } else if let heatMap = heatMapBuffer {
+                renderedOverlay = await generateSaliencyOverlay(for: image, heatMap: heatMap)
             }
         } catch {
             errorMessage = "Saliency generation failed: \(error.localizedDescription)"
@@ -70,23 +91,19 @@ final class GenerateObjectnessBasedSaliencyImageViewModel: BaseModelDetailViewMo
 
     func clearResults() {
         saliencyResults = []
+        heatMapBuffer = nil
+        renderedOverlay = nil
         errorMessage = nil
         statistics = nil
     }
 
     // MARK: - Private Methods
 
-    private func generateSaliencyOverlay(for image: UIImage) -> UIImage {
-        let rectangles = saliencyResults.flatMap { result in
-            result.salientObjects.map { object in
-                let label = String(format: "%.2f", object.confidence)
-                return (rect: object.boundingBox, label: label)
-            }
-        }
-        return OverlayRenderer.renderRectangles(rectangles, imageSize: image.size)
+    private func generateSaliencyOverlay(for image: UIImage, heatMap: CVPixelBuffer) async -> UIImage? {
+        return await OverlayRenderer.renderBitmapMask(heatMap, imageSize: image.size, tintColor: overlayColor)
     }
 
-    private func performObjectnessSaliencyGeneration(on image: UIImage) async throws -> [ObjectnessSaliency] {
+    private func performObjectnessSaliencyGeneration(on image: UIImage) async throws -> ([ObjectnessSaliency], CVPixelBuffer?) {
         guard let cgImage = image.cgImage else {
             throw VisionError.invalidImage
         }
@@ -94,7 +111,33 @@ final class GenerateObjectnessBasedSaliencyImageViewModel: BaseModelDetailViewMo
         let request = GenerateObjectnessBasedSaliencyImageRequest()
         let observation = try await request.perform(on: cgImage, orientation: nil)
 
-        return [ObjectnessSaliency(from: observation, index: 0, imageSize: image.size)]
+        let results = [ObjectnessSaliency(from: observation, index: 0, imageSize: image.size)]
+
+        // Extract pixel buffer from observation using cgImage as intermediate
+        var heatMapBuffer: CVPixelBuffer?
+        if let cgImage = try? observation.heatMap.cgImage {
+            // Convert CGImage back to CVPixelBuffer for mask rendering
+            let width = cgImage.width
+            let height = cgImage.height
+            let attrs = [kCVPixelBufferCGImageCompatibilityKey: kCFBooleanTrue,
+                        kCVPixelBufferCGBitmapContextCompatibilityKey: kCFBooleanTrue] as CFDictionary
+            var pixelBuffer: CVPixelBuffer?
+            CVPixelBufferCreate(kCFAllocatorDefault, width, height,
+                              kCVPixelFormatType_32ARGB, attrs, &pixelBuffer)
+            if let pixelBuffer = pixelBuffer {
+                CVPixelBufferLockBaseAddress(pixelBuffer, [])
+                let context = CGContext(data: CVPixelBufferGetBaseAddress(pixelBuffer),
+                                      width: width, height: height,
+                                      bitsPerComponent: 8, bytesPerRow: CVPixelBufferGetBytesPerRow(pixelBuffer),
+                                      space: CGColorSpaceCreateDeviceRGB(),
+                                      bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue)
+                context?.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+                CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
+                heatMapBuffer = pixelBuffer
+            }
+        }
+
+        return (results, heatMapBuffer)
     }
 }
 

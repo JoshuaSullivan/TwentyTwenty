@@ -260,28 +260,57 @@ enum OverlayRenderer {
 
     // MARK: - Bitmap/Mask Overlays
 
-    /// Renders a bitmap mask or heatmap overlay
+    /// Renders a bitmap mask with a tint color overlay
     /// - Parameters:
-    ///   - pixelBuffer: CVPixelBuffer containing the mask or heatmap data
+    ///   - pixelBuffer: CVPixelBuffer containing the mask data
     ///   - imageSize: Size of the image to render on
-    /// - Returns: UIImage containing the rendered overlay (white where mask is active)
+    ///   - tintColor: Color to apply where mask is white (black areas will be transparent)
+    ///   - flipVertically: Whether to flip the mask vertically (for Vision coordinate conversion)
+    /// - Returns: UIImage containing the rendered colored mask overlay
     static func renderBitmapMask(
         _ pixelBuffer: CVPixelBuffer,
-        imageSize: CGSize
-    ) -> UIImage? {
-        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-        let context = CIContext()
+        imageSize: CGSize,
+        tintColor: UIColor,
+        flipVertically: Bool = false
+    ) async -> UIImage? {
+        var ciImage = CIImage(cvPixelBuffer: pixelBuffer)
 
-        guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
+        // Flip vertically if needed (Vision coordinates use bottom-left origin, UIKit uses top-left)
+        if flipVertically {
+            ciImage = ciImage.oriented(.downMirrored)
+        }
+
+        // Apply color matrix to convert grayscale to tinted mask
+        // White (1) becomes the tint color, black (0) becomes transparent
+        guard let colorMatrixFilter = CIFilter(name: "CIColorMatrix") else {
             return nil
         }
 
-        // Create a white mask from the grayscale image
-        let renderer = UIGraphicsImageRenderer(size: imageSize)
+        // Extract RGB components from tint color
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        tintColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
 
-        return renderer.image { ctx in
-            ctx.cgContext.draw(cgImage, in: CGRect(origin: .zero, size: imageSize))
+        colorMatrixFilter.setValue(ciImage, forKey: kCIInputImageKey)
+        // Set RGB channels based on tint color, alpha channel uses the mask value
+        colorMatrixFilter.setValue(CIVector(x: 0, y: 0, z: 0, w: red), forKey: "inputRVector")
+        colorMatrixFilter.setValue(CIVector(x: 0, y: 0, z: 0, w: green), forKey: "inputGVector")
+        colorMatrixFilter.setValue(CIVector(x: 0, y: 0, z: 0, w: blue), forKey: "inputBVector")
+        colorMatrixFilter.setValue(CIVector(x: 1, y: 0, z: 0, w: 0), forKey: "inputAVector")
+
+        guard let outputImage = colorMatrixFilter.outputImage else {
+            return nil
         }
+
+        // Scale to match image size
+        let scaleX = imageSize.width / outputImage.extent.width
+        let scaleY = imageSize.height / outputImage.extent.height
+        let scaledImage = outputImage.transformed(by: CGAffineTransform(scaleX: scaleX, y: scaleY))
+
+        // Use shared render service for efficient rendering
+        return await RenderService.shared.renderToUIImage(image: scaledImage, from: CGRect(origin: .zero, size: imageSize))
     }
 
     // MARK: - Private Helpers
