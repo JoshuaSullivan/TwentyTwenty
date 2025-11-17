@@ -24,6 +24,15 @@ struct TrackOpticalFlowView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
 
+                        // Video playback with optical flow overlay
+                        if let video = viewModel.selectedVideo {
+                            OpticalFlowVideoPlayerView(
+                                videoAsset: video,
+                                flowResults: viewModel.opticalFlowResults,
+                                totalFrames: 30
+                            )
+                        }
+
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
                                 Image(systemName: "arrow.triangle.branch")
@@ -70,13 +79,6 @@ struct TrackOpticalFlowView: View {
                         .padding()
                         .background(Color(.systemGray6))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                        Text("Note: Optical flow generates dense motion vector fields. Full vector field visualization would require rendering thousands of arrows. Consider using the flow data programmatically or viewing individual frame pair results.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                 }
             }
