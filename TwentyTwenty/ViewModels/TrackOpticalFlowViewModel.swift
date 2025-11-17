@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import Vision
+import AVFoundation
 import Observation
 
 /// ViewModel for the Track Optical Flow model
@@ -11,6 +12,7 @@ final class TrackOpticalFlowViewModel: BaseModelDetailViewModel {
 
     let model: VisionModel
     var selectedImage: UIImage?
+    var selectedVideo: AVAsset?
     var isProcessing = false
     var errorMessage: String?
     var statistics: PerformanceStatistics?
@@ -19,10 +21,17 @@ final class TrackOpticalFlowViewModel: BaseModelDetailViewModel {
         [.objects, .people, .nature]
     }
 
+    var requiresVideo: Bool {
+        true
+    }
+
     // MARK: - Model-Specific State
 
-    /// Tracking requires video input
-    var requiresVideo = true
+    /// Optical flow observations from video analysis
+    var opticalFlowResults: [OpticalFlowResult] = []
+
+    /// Number of consecutive frame pairs to analyze
+    private let frameCount = 30
 
     // MARK: - Initialization
 
@@ -33,12 +42,91 @@ final class TrackOpticalFlowViewModel: BaseModelDetailViewModel {
     // MARK: - Processing
 
     func processImage() async {
-        errorMessage = "This model requires video input. Optical flow analyzes the pattern of motion between consecutive frames, generating a dense field of motion vectors that show how pixels move across the scene."
+        errorMessage = "This model requires video input. Please select a video instead."
+        isProcessing = false
+    }
+
+    func processVideo() async {
+        guard let video = selectedVideo else {
+            errorMessage = "No video selected"
+            return
+        }
+
+        isProcessing = true
+        errorMessage = nil
+        opticalFlowResults = []
+
+        do {
+            let (results, tracker) = try await PerformanceTracker.measure {
+                try await performOpticalFlowTracking(on: video)
+            }
+
+            opticalFlowResults = results
+            statistics = PerformanceStatistics(from: tracker)
+
+            if opticalFlowResults.isEmpty {
+                errorMessage = "No optical flow data generated"
+            }
+        } catch {
+            errorMessage = "Processing failed: \(error.localizedDescription)"
+        }
+
         isProcessing = false
     }
 
     func clearResults() {
+        opticalFlowResults = []
         errorMessage = nil
         statistics = nil
+    }
+
+    // MARK: - Private Methods
+
+    private func performOpticalFlowTracking(on video: AVAsset) async throws -> [OpticalFlowResult] {
+        // Extract frames from video
+        let frames = try await VideoManager.extractFrames(from: video, frameCount: frameCount)
+
+        guard frames.count >= 2 else {
+            throw VideoError.noFramesExtracted
+        }
+
+        var results: [OpticalFlowResult] = []
+
+        // Create optical flow request
+        let request = TrackOpticalFlowRequest()
+        request.computationAccuracy = .medium
+
+        // Process consecutive frame pairs
+        for i in 0..<(frames.count - 1) {
+            do {
+                let observation = try await request.perform(on: frames[i + 1], orientation: .up)
+
+                if let observation = observation {
+                    results.append(OpticalFlowResult(
+                        framePairIndex: i,
+                        size: observation.size,
+                        confidence: observation.confidence
+                    ))
+                }
+            } catch {
+                print("Optical flow error at frame pair \(i): \(error)")
+            }
+        }
+
+        return results
+    }
+}
+
+// MARK: - Optical Flow Result Model
+
+/// Result for optical flow between consecutive frames
+struct OpticalFlowResult: Identifiable {
+    let id = UUID()
+    let framePairIndex: Int
+    let size: CGSize
+    let confidence: Float
+
+    var wasSuccessful: Bool {
+        confidence > 0.0
     }
 }

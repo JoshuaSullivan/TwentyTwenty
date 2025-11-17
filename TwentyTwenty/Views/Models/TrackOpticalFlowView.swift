@@ -12,25 +12,75 @@ struct TrackOpticalFlowView: View {
     }
 
     var body: some View {
-        ModelDetailView(viewModel: viewModel, resultsView: {
-            // Video requirement notice
-            VideoRequirementNotice(
-                title: "Optical Flow",
-                description: "Optical flow computes dense motion vectors between consecutive frames, revealing how every pixel moves in the scene.",
-                capabilities: [
-                    "Generate dense motion vector fields",
-                    "Detect camera motion vs object motion",
-                    "Analyze movement patterns and speed",
-                    "Support motion-based video effects"
-                ],
-                workflow: [
-                    "Provide two consecutive video frames",
-                    "Vision analyzes pixel-level changes between frames",
-                    "Motion vectors are computed for the image",
-                    "Results show direction and magnitude of motion"
-                ]
-            )
-        })
+        ModelDetailView(
+            viewModel: viewModel,
+            resultsView: {
+                if !viewModel.opticalFlowResults.isEmpty {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Optical Flow Results")
+                            .font(.headline)
+
+                        Text("Processed \(viewModel.opticalFlowResults.count) frame pair(s)")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Image(systemName: "arrow.triangle.branch")
+                                    .foregroundStyle(.blue)
+                                Text("Flow Analysis")
+                                    .font(.headline)
+
+                                Spacer()
+
+                                let avgConfidence = viewModel.opticalFlowResults.reduce(0) { $0 + $1.confidence } / Float(viewModel.opticalFlowResults.count)
+                                Text(String(format: "%.0f%%", avgConfidence * 100))
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(avgConfidence > 0.8 ? .green : avgConfidence > 0.5 ? .orange : .red)
+                            }
+
+                            HStack(spacing: 16) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Frame Pairs")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text("\(viewModel.opticalFlowResults.count)")
+                                        .font(.body)
+                                        .fontWeight(.medium)
+                                }
+
+                                Divider()
+                                    .frame(height: 30)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Successful")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    let successful = viewModel.opticalFlowResults.filter { $0.wasSuccessful }.count
+                                    Text("\(successful)")
+                                        .font(.body)
+                                        .fontWeight(.medium)
+                                }
+                            }
+                            .padding()
+                            .background(Color(.systemBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                        Text("Note: Full optical flow visualization coming soon")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                }
+            }
+        )
     }
 }
 

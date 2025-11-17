@@ -125,13 +125,10 @@ final class TrackObjectViewModel: BaseModelDetailViewModel {
             throw VideoError.noFramesExtracted
         }
 
-        // NOTE: Object tracking is not yet available in the modern Vision API (iOS 18)
-        // We need to use the legacy VNTrackObjectRequest from the VN* framework
-
         // Convert the user-selected bounding box to Vision coordinates
         // The box is in normalized coordinates (0-1) with top-left origin (SwiftUI)
         // Vision uses bottom-left origin, so we need to flip Y
-        let visionBox = CGRect(
+        let normalizedRect = NormalizedRect(
             x: initialBox.origin.x,
             y: 1.0 - initialBox.origin.y - initialBox.size.height,
             width: initialBox.size.width,
@@ -139,56 +136,24 @@ final class TrackObjectViewModel: BaseModelDetailViewModel {
         )
 
         var trackResults: [TrackResult] = []
-        var lastObservation: VNDetectedObjectObservation?
-
-        // Create initial observation for the first frame
-        let inputObservation = VNDetectedObjectObservation(boundingBox: visionBox)
+        var currentObservation = DetectedObjectObservation(boundingBox: normalizedRect)
 
         // Track the object across all frames
         for (index, frame) in frames.enumerated() {
-            // Create tracking request
-            let request: VNTrackObjectRequest
-
-            if index == 0 {
-                // First frame: use the user-selected box
-                request = VNTrackObjectRequest(detectedObjectObservation: inputObservation)
-            } else if let previousObservation = lastObservation {
-                // Subsequent frames: track from previous observation
-                request = VNTrackObjectRequest(detectedObjectObservation: previousObservation)
-            } else {
-                // Lost tracking, mark as failed
-                trackResults.append(TrackResult(
-                    frameIndex: index,
-                    boundingBox: NormalizedRect(x: 0, y: 0, width: 0, height: 0),
-                    confidence: 0.0
-                ))
-                continue
-            }
-
-            request.trackingLevel = .accurate
-
-            // Perform the tracking request
-            let handler = VNImageRequestHandler(cgImage: frame, options: [:])
+            let request = TrackObjectRequest(detectedObject: currentObservation)
 
             do {
-                try handler.perform([request])
+                let observation = try await request.perform(on: frame, orientation: .up)
 
-                if let observation = request.results?.first as? VNDetectedObjectObservation {
-                    // Convert VNDetectedObjectObservation boundingBox to NormalizedRect
-                    let box = observation.boundingBox
+                if let observation = observation {
                     trackResults.append(TrackResult(
                         frameIndex: index,
-                        boundingBox: NormalizedRect(
-                            x: box.origin.x,
-                            y: box.origin.y,
-                            width: box.width,
-                            height: box.height
-                        ),
+                        boundingBox: observation.boundingBox,
                         confidence: observation.confidence
                     ))
 
                     // Update for next frame
-                    lastObservation = observation
+                    currentObservation = observation
                 } else {
                     // Tracking lost
                     trackResults.append(TrackResult(
@@ -196,7 +161,6 @@ final class TrackObjectViewModel: BaseModelDetailViewModel {
                         boundingBox: NormalizedRect(x: 0, y: 0, width: 0, height: 0),
                         confidence: 0.0
                     ))
-                    lastObservation = nil
                 }
             } catch {
                 // Tracking failed for this frame
@@ -206,7 +170,6 @@ final class TrackObjectViewModel: BaseModelDetailViewModel {
                     boundingBox: NormalizedRect(x: 0, y: 0, width: 0, height: 0),
                     confidence: 0.0
                 ))
-                lastObservation = nil
             }
         }
 

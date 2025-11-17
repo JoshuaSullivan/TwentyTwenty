@@ -12,25 +12,73 @@ struct TrackRectangleView: View {
     }
 
     var body: some View {
-        ModelDetailView(viewModel: viewModel, resultsView: {
-            // Video requirement notice
-            VideoRequirementNotice(
-                title: "Rectangle Tracking",
-                description: "Rectangle tracking maintains a rectangular region across video frames, adapting to perspective changes and motion.",
-                capabilities: [
-                    "Track planar rectangular surfaces",
-                    "Handle perspective transformations",
-                    "Adapt to scale and rotation changes",
-                    "Maintain tracking through partial occlusion"
-                ],
-                workflow: [
-                    "Define a rectangular region in the first frame",
-                    "Vision establishes tracking features within the rectangle",
-                    "Each frame is analyzed to locate the tracked rectangle",
-                    "Rectangle corners are updated to match perspective changes"
-                ]
-            )
-        })
+        ModelDetailView(
+            viewModel: viewModel,
+            resultsView: {
+                if !viewModel.detectedTracks.isEmpty {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Rectangle Tracking Results")
+                            .font(.headline)
+
+                        ForEach(viewModel.detectedTracks) { track in
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Image(systemName: "rectangle.dashed")
+                                        .foregroundStyle(.blue)
+                                    Text("Tracked Rectangle")
+                                        .font(.headline)
+
+                                    Spacer()
+
+                                    Label(
+                                        String(format: "%.0f%%", track.successRate),
+                                        systemImage: "checkmark.circle.fill"
+                                    )
+                                    .font(.caption)
+                                    .foregroundStyle(track.successRate > 80 ? .green : track.successRate > 50 ? .orange : .red)
+                                }
+
+                                HStack(spacing: 16) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Frames Tracked")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                        Text("\(track.successfulFrames) / \(track.totalFrames)")
+                                            .font(.body)
+                                            .fontWeight(.medium)
+                                    }
+
+                                    Divider()
+                                        .frame(height: 30)
+
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Avg. Confidence")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                        Text(String(format: "%.1f%%", track.averageConfidence * 100))
+                                            .font(.body)
+                                            .fontWeight(.medium)
+                                    }
+                                }
+                                .padding()
+                                .background(Color(.systemBackground))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+
+                        Text("Note: Full rectangle visualization coming soon")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                }
+            }
+        )
     }
 }
 
