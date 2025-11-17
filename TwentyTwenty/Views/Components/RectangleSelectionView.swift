@@ -136,16 +136,6 @@ struct RectangleSelectionView: View {
             imageFrame = CGRect(x: xOffset, y: 0, width: displayWidth, height: viewSize.height)
         }
 
-        // Convert tap location to normalized coordinates (0-1)
-        let relativeX = (location.x - imageFrame.minX) / imageFrame.width
-        let relativeY = (location.y - imageFrame.minY) / imageFrame.height
-
-        // Clamp to valid range
-        let clampedX = max(0, min(1, relativeX))
-        let clampedY = max(0, min(1, relativeY))
-
-        let normalizedPoint = CGPoint(x: clampedX, y: clampedY)
-
         // Store the view-space location for drawing
         draggedCorners.append(location)
 

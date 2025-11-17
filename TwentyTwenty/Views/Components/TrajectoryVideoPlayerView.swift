@@ -127,9 +127,9 @@ struct TrajectoryVideoPlayerView: View {
             forName: .AVPlayerItemDidPlayToEndTime,
             object: videoSync.playerItem,
             queue: .main
-        ) { [weak videoSync] _ in
-            isPlaying = false
-            Task { @MainActor in
+        ) { _ in
+            Task { @MainActor [weak videoSync] in
+                isPlaying = false
                 videoSync?.player?.seek(to: .zero)
             }
         }
