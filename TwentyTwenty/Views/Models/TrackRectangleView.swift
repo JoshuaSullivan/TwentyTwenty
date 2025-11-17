@@ -14,11 +14,51 @@ struct TrackRectangleView: View {
     var body: some View {
         ModelDetailView(
             viewModel: viewModel,
+            configurationView: {
+                // Configuration: Rectangle Selection
+                if let firstFrame = viewModel.firstFrame {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if viewModel.selectedRectangle == nil {
+                            RectangleSelectionView(firstFrame: firstFrame) { rectangle in
+                                viewModel.selectedRectangle = rectangle
+                            }
+                        } else {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                                Text("Rectangle selected and ready to track")
+                                    .font(.subheadline)
+
+                                Spacer()
+
+                                Button("Change Selection") {
+                                    viewModel.selectedRectangle = nil
+                                }
+                                .font(.caption)
+                                .buttonStyle(.bordered)
+                            }
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                    }
+                }
+            },
             resultsView: {
                 if !viewModel.detectedTracks.isEmpty {
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Rectangle Tracking Results")
                             .font(.headline)
+
+                        // Video playback with tracking overlay
+                        if let video = viewModel.selectedVideo,
+                           let track = viewModel.detectedTracks.first {
+                            RectangleTrackingVideoPlayerView(
+                                videoAsset: video,
+                                trackResults: track.results,
+                                totalFrames: track.totalFrames
+                            )
+                        }
 
                         ForEach(viewModel.detectedTracks) { track in
                             VStack(alignment: .leading, spacing: 12) {
@@ -68,17 +108,17 @@ struct TrackRectangleView: View {
                             .background(Color(.systemGray6))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
-
-                        Text("Note: Full rectangle visualization coming soon")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                 }
             }
         )
+        .onChange(of: viewModel.selectedVideo) { _, newValue in
+            if newValue != nil {
+                Task {
+                    await viewModel.loadFirstFrame()
+                }
+            }
+        }
     }
 }
 

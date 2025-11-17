@@ -71,7 +71,7 @@ struct TrackOpticalFlowView: View {
                         .background(Color(.systemGray6))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                        Text("Note: Full optical flow visualization coming soon")
+                        Text("Note: Optical flow generates dense motion vector fields. Full vector field visualization would require rendering thousands of arrows. Consider using the flow data programmatically or viewing individual frame pair results.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .padding()

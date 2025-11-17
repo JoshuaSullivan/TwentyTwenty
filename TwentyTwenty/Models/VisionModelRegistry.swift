@@ -293,7 +293,7 @@ struct VisionModelRegistry {
             name: "Core ML Request",
             minimumIOSVersion: 11.0,
             description: "Integrates custom Core ML models with Vision pipeline",
-            category: .classification,
+            category: .utility,
             requestType: .coreML
         ),
     ]

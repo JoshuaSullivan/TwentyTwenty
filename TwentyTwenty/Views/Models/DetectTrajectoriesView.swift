@@ -1,4 +1,5 @@
 import SwiftUI
+import Vision
 
 /// Detail view for the Detect Trajectories model
 struct DetectTrajectoriesView: View {
@@ -23,6 +24,15 @@ struct DetectTrajectoriesView: View {
                         Text("Detected \(viewModel.detectedTrajectories.count) trajectory/trajectories")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+
+                        // Video playback with trajectory overlay
+                        if let video = viewModel.selectedVideo {
+                            TrajectoryVideoPlayerView(
+                                videoAsset: video,
+                                trajectories: viewModel.detectedTrajectories,
+                                totalFrames: 30
+                            )
+                        }
 
                         ForEach(Array(viewModel.detectedTrajectories.enumerated()), id: \.offset) { index, trajectory in
                             VStack(alignment: .leading, spacing: 12) {
@@ -70,13 +80,6 @@ struct DetectTrajectoriesView: View {
                             .background(Color(.systemGray6))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
-
-                        Text("Note: Full trajectory visualization coming soon")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                 }
             }

@@ -28,6 +28,7 @@ enum VisionModelCategory: String, CaseIterable, Identifiable {
     case generation = "Generation"
     case tracking = "Tracking"
     case classification = "Classification"
+    case utility = "Utility"
 
     var id: String { rawValue }
 }
