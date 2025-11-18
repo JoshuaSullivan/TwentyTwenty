@@ -19,16 +19,24 @@ struct ModelDetailView<ViewModel: BaseModelDetailViewModel, ConfigurationView: V
 
                 descriptionSection
 
-                // MARK: - Image Selection
+                // MARK: - Image/Video Selection
 
-                ImageSelectionView(
-                    selectedImage: $viewModel.selectedImage,
-                    recommendedContentTypes: viewModel.recommendedContentTypes,
-                    overlayImage: viewModel.overlayImage,
-                    overlayColor: $viewModel.overlayColor,
-                    supportsColorTinting: viewModel.supportsColorTinting
-                )
-                .padding(.horizontal)
+                if viewModel.requiresVideo {
+                    VideoSelectionView(
+                        selectedVideo: $viewModel.selectedVideo,
+                        recommendedContentTypes: viewModel.recommendedContentTypes
+                    )
+                    .padding(.horizontal)
+                } else {
+                    ImageSelectionView(
+                        selectedImage: $viewModel.selectedImage,
+                        recommendedContentTypes: viewModel.recommendedContentTypes,
+                        overlayImage: viewModel.overlayImage,
+                        overlayColor: $viewModel.overlayColor,
+                        supportsColorTinting: viewModel.supportsColorTinting
+                    )
+                    .padding(.horizontal)
+                }
 
                 // MARK: - Configuration Controls
 
@@ -106,7 +114,11 @@ struct ModelDetailView<ViewModel: BaseModelDetailViewModel, ConfigurationView: V
     private var processButton: some View {
         Button {
             Task {
-                await viewModel.processImage()
+                if viewModel.requiresVideo {
+                    await viewModel.processVideo()
+                } else {
+                    await viewModel.processImage()
+                }
             }
         } label: {
             HStack {
@@ -115,21 +127,29 @@ struct ModelDetailView<ViewModel: BaseModelDetailViewModel, ConfigurationView: V
                         .progressViewStyle(.circular)
                         .tint(.white)
                 } else {
-                    Image(systemName: "wand.and.stars")
+                    Image(systemName: viewModel.requiresVideo ? "play.circle" : "wand.and.stars")
                 }
 
-                Text(viewModel.isProcessing ? "Processing..." : "Analyze Image")
+                Text(viewModel.isProcessing ? "Processing..." : (viewModel.requiresVideo ? "Analyze Video" : "Analyze Image"))
             }
             .frame(maxWidth: .infinity)
             .padding()
-            .background(viewModel.selectedImage == nil || viewModel.isProcessing ? Color.gray : Color.blue)
+            .background(isProcessButtonDisabled ? Color.gray : Color.blue)
             .foregroundStyle(.white)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
-        .disabled(viewModel.selectedImage == nil || viewModel.isProcessing)
+        .disabled(isProcessButtonDisabled)
         .padding(.horizontal)
-        .accessibilityLabel(viewModel.isProcessing ? "Processing image" : "Analyze image with Vision model")
-        .accessibilityHint(viewModel.selectedImage == nil ? "Select an image first" : "")
+        .accessibilityLabel(viewModel.isProcessing ? "Processing \(viewModel.requiresVideo ? "video" : "image")" : "Analyze \(viewModel.requiresVideo ? "video" : "image") with Vision model")
+        .accessibilityHint(isProcessButtonDisabled ? "Select \(viewModel.requiresVideo ? "a video" : "an image") first" : "")
+    }
+
+    private var isProcessButtonDisabled: Bool {
+        if viewModel.requiresVideo {
+            return viewModel.selectedVideo == nil || viewModel.isProcessing
+        } else {
+            return viewModel.selectedImage == nil || viewModel.isProcessing
+        }
     }
 
     // MARK: - Error View
@@ -171,6 +191,8 @@ struct ModelDetailView<ViewModel: BaseModelDetailViewModel, ConfigurationView: V
             return .orange
         case .classification:
             return .pink
+        case .utility:
+            return .brown
         }
     }
 }

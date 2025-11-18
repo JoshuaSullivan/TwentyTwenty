@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import AVFoundation
 import Observation
 
 /// Protocol that all model-specific detail ViewModels must conform to
@@ -10,6 +11,12 @@ protocol BaseModelDetailViewModel: AnyObject, Observable {
 
     /// Currently selected image for analysis
     var selectedImage: UIImage? { get set }
+
+    /// Currently selected video for analysis (tracking models only)
+    var selectedVideo: AVAsset? { get set }
+
+    /// Whether this model requires video input instead of images
+    var requiresVideo: Bool { get }
 
     /// Whether a Vision request is currently running
     var isProcessing: Bool { get set }
@@ -34,6 +41,9 @@ protocol BaseModelDetailViewModel: AnyObject, Observable {
 
     /// Processes the currently selected image with the Vision model
     func processImage() async
+
+    /// Processes the currently selected video with the Vision model (tracking models only)
+    func processVideo() async
 
     /// Clears the current results and resets state
     func clearResults()
@@ -63,6 +73,22 @@ extension BaseModelDetailViewModel {
         true
     }
 
+    /// Default implementation - most models use images, not video
+    var requiresVideo: Bool {
+        false
+    }
+
+    /// Default implementation - no video selected (non-tracking models don't need this)
+    var selectedVideo: AVAsset? {
+        get { nil }
+        set { }
+    }
+
+    /// Default implementation - does nothing (override for tracking models)
+    func processVideo() async {
+        // No-op for non-video models
+    }
+
     /// Default implementation clears error and statistics
     func clearResults() {
         errorMessage = nil
@@ -81,6 +107,9 @@ class BaseModelDetailViewModelImpl {
 
     /// Currently selected image
     var selectedImage: UIImage?
+
+    /// Currently selected video (tracking models only)
+    var selectedVideo: AVAsset?
 
     /// Whether processing is in progress
     var isProcessing = false

@@ -102,7 +102,7 @@ final class GeneratePersonSegmentationViewModel: BaseModelDetailViewModel {
             throw VisionError.invalidImage
         }
 
-        var request = GeneratePersonSegmentationRequest()
+        let request = GeneratePersonSegmentationRequest()
         request.qualityLevel = qualityLevel
 
         let observation = try await request.perform(on: cgImage, orientation: nil)

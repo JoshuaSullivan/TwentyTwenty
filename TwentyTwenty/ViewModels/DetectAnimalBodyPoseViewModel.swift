@@ -164,9 +164,9 @@ final class DetectAnimalBodyPoseViewModel: BaseModelDetailViewModel {
 
             // Tail (yellow)
             let tailConnections: [(String, String)] = [
-                ("neck", "tailTop"),
-                ("tailTop", "tailMiddle"),
-                ("tailMiddle", "tailBottom")
+                ("neck", "tailBottom"),
+                ("tailBottom", "tailMiddle"),
+                ("tailMiddle", "tailTop")
             ]
             jointGroups.append(createJointGroup(from: tailConnections, color: UIColor.systemYellow, jointMap: jointMap))
 

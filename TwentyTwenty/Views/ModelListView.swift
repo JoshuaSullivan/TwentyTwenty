@@ -113,6 +113,8 @@ struct ModelRow: View {
             return .orange
         case .classification:
             return .pink
+        case .utility:
+            return .brown
         }
     }
 }
