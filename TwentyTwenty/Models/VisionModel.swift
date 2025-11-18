@@ -76,6 +76,7 @@ enum VisionRequestType: String {
 
     // Analysis requests
     case calculateImageAestheticsScores
+    case detectLensSmudge
 
     // Core ML integration
     case coreML

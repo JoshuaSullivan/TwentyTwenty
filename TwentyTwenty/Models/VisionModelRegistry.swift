@@ -286,6 +286,15 @@ struct VisionModelRegistry {
             requestType: .calculateImageAestheticsScores
         ),
 
+        VisionModel(
+            id: "detect-lens-smudge",
+            name: "Detect Lens Smudge",
+            minimumIOSVersion: 26.0,
+            description: "Detects if the camera lens has smudges that may affect image quality",
+            category: .detection,
+            requestType: .detectLensSmudge
+        ),
+
         // MARK: - Core ML Integration
 
         VisionModel(

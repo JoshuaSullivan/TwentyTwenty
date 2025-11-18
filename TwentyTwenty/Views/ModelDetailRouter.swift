@@ -24,6 +24,9 @@ struct ModelDetailRouter: View {
         case .calculateImageAestheticsScores:
             CalculateImageAestheticsScoresView(model: model)
 
+        case .detectLensSmudge:
+            DetectLensSmudgeView(model: model)
+
         case .detectHorizon:
             DetectHorizonView(model: model)
 
