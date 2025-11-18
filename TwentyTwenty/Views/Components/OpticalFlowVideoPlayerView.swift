@@ -12,6 +12,7 @@ struct OpticalFlowVideoPlayerView: View {
     @State private var duration: Double = 0
     @State private var isPlaying = false
     @State private var vectorSpacing: Double = 20 // pixels between sampled vectors
+    @State private var scrubbingTime: Double? // Track time while scrubbing
 
     var body: some View {
         VStack(spacing: 16) {
@@ -26,7 +27,7 @@ struct OpticalFlowVideoPlayerView: View {
 
                     // Optical flow overlay
                     OpticalFlowOverlayView(
-                        currentTime: videoSync.currentTime,
+                        currentTime: scrubbingTime ?? videoSync.currentTime,
                         duration: duration,
                         flowResults: flowResults,
                         totalFrames: totalFrames,
@@ -44,7 +45,7 @@ struct OpticalFlowVideoPlayerView: View {
                 Image(systemName: "arrow.triangle.branch")
                     .foregroundStyle(.blue)
 
-                Text(formatTime(videoSync.currentTime))
+                Text(formatTime(scrubbingTime ?? videoSync.currentTime))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
@@ -60,7 +61,7 @@ struct OpticalFlowVideoPlayerView: View {
 
                 Spacer()
 
-                let frameInfo = currentFrameInfo()
+                let frameInfo = currentFrameInfo(time: scrubbingTime ?? videoSync.currentTime)
                 if let info = frameInfo, info.wasSuccessful {
                     Text(String(format: "%.0f%%", info.confidence * 100))
                         .font(.caption)
@@ -86,12 +87,19 @@ struct OpticalFlowVideoPlayerView: View {
             // Timeline scrubber
             Slider(
                 value: Binding(
-                    get: { videoSync.currentTime },
+                    get: { scrubbingTime ?? videoSync.currentTime },
                     set: { newTime in
-                        videoSync.player?.seek(to: CMTime(seconds: newTime, preferredTimescale: 600))
+                        scrubbingTime = newTime
                     }
                 ),
-                in: 0...max(duration, 0.1)
+                in: 0...max(duration, 0.1),
+                onEditingChanged: { editing in
+                    if !editing, let seekTime = scrubbingTime {
+                        // User finished scrubbing, seek to the time
+                        videoSync.player?.seek(to: CMTime(seconds: seekTime, preferredTimescale: 600))
+                        scrubbingTime = nil
+                    }
+                }
             )
 
             // Playback controls
@@ -156,10 +164,10 @@ struct OpticalFlowVideoPlayerView: View {
         }
     }
 
-    private func currentFrameInfo() -> OpticalFlowResult? {
+    private func currentFrameInfo(time: Double) -> OpticalFlowResult? {
         guard duration > 0 else { return nil }
 
-        let progress = videoSync.currentTime / duration
+        let progress = time / duration
         let frameIndex = Int(progress * Double(totalFrames))
 
         return flowResults.first(where: { $0.framePairIndex == frameIndex })
@@ -184,28 +192,112 @@ struct OpticalFlowOverlayView: View {
     let vectorSpacing: Double
 
     var body: some View {
-        GeometryReader { geometry in
-            VStack {
-                Text("⚠️ Partial Visualization")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.orange)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                    .shadow(radius: 2)
+        Canvas { context, size in
+            guard let currentObservation = getCurrentObservation() else { return }
 
-                Text("Optical flow generates dense motion vectors. Full vector field rendering requires pixel buffer access and would be implemented for production use.")
-                    .font(.caption2)
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-                    .padding(8)
-                    .background(Color.black.opacity(0.7))
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                    .padding(.horizontal)
+            // Get the flow field size to understand coordinate space
+            let flowSize = currentObservation.observation.size
+
+            // Calculate scale factor from flow coordinates to view coordinates
+            let scaleX = size.width / flowSize.width
+            let scaleY = size.height / flowSize.height
+
+            // Visualization scale - controls how much to amplify the vectors for visibility
+            let visualScale = 15.0
+
+            // Sample the flow field at regular intervals
+            let spacing = vectorSpacing
+            let cols = Int(size.width / spacing)
+            let rows = Int(size.height / spacing)
+
+            for row in 0..<rows {
+                for col in 0..<cols {
+                    // Calculate normalized point (0-1 range)
+                    let normalizedX = Double(col) / Double(cols)
+                    let normalizedY = Double(row) / Double(rows)
+                    let point = NormalizedPoint(x: normalizedX, y: normalizedY)
+
+                    // Get flow vector at this point (in flow field pixel coordinates)
+                    let (dx, dy) = currentObservation.observation.flow(at: point)
+
+                    // Skip very small vectors
+                    let magnitude = sqrt(dx * dx + dy * dy)
+                    guard magnitude > 0.1 else { continue }
+
+                    // Calculate arrow position in view coordinates
+                    let startX = Double(col) * spacing + spacing / 2
+                    let startY = Double(row) * spacing + spacing / 2
+
+                    // Scale flow vector to view coordinates and apply visualization scale
+                    let scaledDx = Double(dx) * scaleX * visualScale
+                    let scaledDy = Double(dy) * scaleY * visualScale
+
+                    // Clamp arrow length to prevent going off screen
+                    let maxArrowLength = spacing * 1.5
+                    let scaledMagnitude = sqrt(scaledDx * scaledDx + scaledDy * scaledDy)
+                    let clampedScale = min(1.0, maxArrowLength / scaledMagnitude)
+
+                    let endX = startX + scaledDx * clampedScale
+                    let endY = startY + scaledDy * clampedScale
+
+                    // Draw arrow
+                    let start = CGPoint(x: startX, y: startY)
+                    let end = CGPoint(x: endX, y: endY)
+
+                    var path = Path()
+                    path.move(to: start)
+                    path.addLine(to: end)
+
+                    // Color based on magnitude
+                    let color = colorForMagnitude(magnitude)
+                    context.stroke(path, with: .color(color), lineWidth: 2)
+
+                    // Draw arrowhead
+                    drawArrowhead(context: context, from: start, to: end, color: color)
+                }
             }
-            .position(x: geometry.size.width / 2, y: 40)
         }
+    }
+
+    private func getCurrentObservation() -> OpticalFlowResult? {
+        guard duration > 0 else { return nil }
+
+        let progress = currentTime / duration
+        let frameIndex = Int(progress * Double(totalFrames))
+
+        return flowResults.first(where: { $0.framePairIndex == frameIndex })
+    }
+
+    private func colorForMagnitude(_ magnitude: Float) -> Color {
+        // Map magnitude to color (blue for slow, red for fast)
+        let normalized = min(magnitude * 2.0, 1.0)
+        return Color(
+            red: Double(normalized),
+            green: 0.3,
+            blue: Double(1.0 - normalized)
+        ).opacity(0.8)
+    }
+
+    private func drawArrowhead(context: GraphicsContext, from start: CGPoint, to end: CGPoint, color: Color) {
+        let angle = atan2(end.y - start.y, end.x - start.x)
+        let arrowLength: CGFloat = 8
+        let arrowAngle: CGFloat = .pi / 6
+
+        let point1 = CGPoint(
+            x: end.x - arrowLength * cos(angle - arrowAngle),
+            y: end.y - arrowLength * sin(angle - arrowAngle)
+        )
+        let point2 = CGPoint(
+            x: end.x - arrowLength * cos(angle + arrowAngle),
+            y: end.y - arrowLength * sin(angle + arrowAngle)
+        )
+
+        var path = Path()
+        path.move(to: end)
+        path.addLine(to: point1)
+        path.move(to: end)
+        path.addLine(to: point2)
+
+        context.stroke(path, with: .color(color), lineWidth: 2)
     }
 }

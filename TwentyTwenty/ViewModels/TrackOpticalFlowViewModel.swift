@@ -104,8 +104,7 @@ final class TrackOpticalFlowViewModel: BaseModelDetailViewModel {
                 if let observation = observation {
                     results.append(OpticalFlowResult(
                         framePairIndex: i,
-                        size: observation.size,
-                        confidence: observation.confidence
+                        observation: observation
                     ))
                 }
             } catch {
@@ -123,10 +122,17 @@ final class TrackOpticalFlowViewModel: BaseModelDetailViewModel {
 struct OpticalFlowResult: Identifiable {
     let id = UUID()
     let framePairIndex: Int
-    let size: CGSize
-    let confidence: Float
+    let observation: OpticalFlowObservation
 
     var wasSuccessful: Bool {
-        confidence > 0.0
+        observation.confidence > 0.0
+    }
+
+    var confidence: Float {
+        observation.confidence
+    }
+
+    var size: CGSize {
+        observation.size
     }
 }

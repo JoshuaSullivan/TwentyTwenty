@@ -24,6 +24,25 @@ struct TrackOpticalFlowView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
 
+                        // Implementation note
+                        VStack(spacing: 8) {
+                            HStack {
+                                Image(systemName: "info.circle.fill")
+                                    .foregroundStyle(.blue)
+                                Text("Sampled Vector Field Visualization")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                            }
+
+                            Text("Optical flow generates dense motion vectors between frames. This view samples the field at regular intervals to show motion direction and magnitude.")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+
                         // Video playback with optical flow overlay
                         if let video = viewModel.selectedVideo {
                             OpticalFlowVideoPlayerView(
