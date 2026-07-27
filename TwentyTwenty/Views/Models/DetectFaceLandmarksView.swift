@@ -1,4 +1,5 @@
 import SwiftUI
+import Vision
 
 /// Detail view for the Detect Face Landmarks model
 struct DetectFaceLandmarksView: View {
@@ -12,7 +13,12 @@ struct DetectFaceLandmarksView: View {
     }
 
     var body: some View {
-        ModelDetailView(viewModel: viewModel, resultsView: {
+        ModelDetailView(viewModel: viewModel, configurationView: {
+            RequestRevisionPicker(
+                revisions: DetectFaceLandmarksRequest.supportedRevisions,
+                selection: $viewModel.revision
+            )
+        }, resultsView: {
             // Results View
             if !viewModel.detectedFaces.isEmpty {
                 VStack(alignment: .leading, spacing: 16) {

@@ -1,4 +1,5 @@
 import SwiftUI
+import Vision
 
 /// Detail view for the Detect Human Rectangles model
 struct DetectHumanRectanglesView: View {
@@ -12,7 +13,12 @@ struct DetectHumanRectanglesView: View {
     }
 
     var body: some View {
-        ModelDetailView(viewModel: viewModel, resultsView: {
+        ModelDetailView(viewModel: viewModel, configurationView: {
+            RequestRevisionPicker(
+                revisions: DetectHumanRectanglesRequest.supportedRevisions,
+                selection: $viewModel.revision
+            )
+        }, resultsView: {
             // Results View
             if !viewModel.detectedHumans.isEmpty {
                 VStack(alignment: .leading, spacing: 16) {

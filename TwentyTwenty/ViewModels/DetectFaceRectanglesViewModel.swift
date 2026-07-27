@@ -38,6 +38,12 @@ final class DetectFaceRectanglesViewModel: BaseModelDetailViewModel {
     /// Detected faces from the last analysis
     var detectedFaces: [DetectedFace] = []
 
+    /// Algorithm revision the request should use.
+    ///
+    /// Defaults to whatever the framework picks, and is offered to the user from
+    /// `DetectFaceRectanglesRequest.supportedRevisions`, which the OS filters at runtime.
+    var revision: DetectFaceRectanglesRequest.Revision = DetectFaceRectanglesRequest().revision
+
     // MARK: - Initialization
 
     init(model: VisionModel) {
@@ -87,7 +93,7 @@ final class DetectFaceRectanglesViewModel: BaseModelDetailViewModel {
             throw VisionError.invalidImage
         }
 
-        let request = DetectFaceRectanglesRequest()
+        let request = DetectFaceRectanglesRequest(revision)
         let observations = try await request.perform(on: cgImage, orientation: nil)
 
         return observations.enumerated().map { index, observation in

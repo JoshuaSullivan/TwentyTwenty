@@ -38,6 +38,12 @@ final class DetectFaceLandmarksViewModel: BaseModelDetailViewModel {
     /// Detected faces with landmarks from the last analysis
     var detectedFaces: [FaceWithLandmarks] = []
 
+    /// Algorithm revision the request should use.
+    ///
+    /// Defaults to whatever the framework picks, and is offered to the user from
+    /// `DetectFaceLandmarksRequest.supportedRevisions`, which the OS filters at runtime.
+    var revision: DetectFaceLandmarksRequest.Revision = DetectFaceLandmarksRequest().revision
+
     // MARK: - Initialization
 
     init(model: VisionModel) {
@@ -112,7 +118,7 @@ final class DetectFaceLandmarksViewModel: BaseModelDetailViewModel {
             throw VisionError.invalidImage
         }
 
-        let request = DetectFaceLandmarksRequest()
+        let request = DetectFaceLandmarksRequest(revision)
         let observations = try await request.perform(on: cgImage, orientation: nil)
 
         return observations.enumerated().map { index, observation in

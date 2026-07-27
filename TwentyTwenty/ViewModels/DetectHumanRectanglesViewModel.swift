@@ -36,6 +36,12 @@ final class DetectHumanRectanglesViewModel: BaseModelDetailViewModel {
     /// Detected human rectangles from the last analysis
     var detectedHumans: [DetectedHuman] = []
 
+    /// Algorithm revision the request should use.
+    ///
+    /// Defaults to whatever the framework picks, and is offered to the user from
+    /// `DetectHumanRectanglesRequest.supportedRevisions`, which the OS filters at runtime.
+    var revision: DetectHumanRectanglesRequest.Revision = DetectHumanRectanglesRequest().revision
+
     // MARK: - Initialization
 
     init(model: VisionModel) {
@@ -85,7 +91,7 @@ final class DetectHumanRectanglesViewModel: BaseModelDetailViewModel {
             throw VisionError.invalidImage
         }
 
-        let request = DetectHumanRectanglesRequest()
+        let request = DetectHumanRectanglesRequest(revision)
         let observations = try await request.perform(on: cgImage, orientation: nil)
 
         return observations.enumerated().map { index, observation in
