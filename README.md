@@ -71,12 +71,6 @@ The app follows MVVM architecture with:
 - **Views** - SwiftUI views with reusable `ModelDetailView` template
 - **Components** - Specialized visualizations for different result types
 
-## Vision Framework Reference
-
-The `docs/vision-ios.swiftinterface` file contains the complete Swift interface for the iOS 18 Vision framework. This file can be used as a reference when working with AI coding assistants to understand available APIs, method signatures, and type definitions.
-
-When asking an AI to help with Vision framework code, you can reference this file to ensure accurate implementation details.
-
 ## Features
 
 - Modern Vision API using Swift concurrency
