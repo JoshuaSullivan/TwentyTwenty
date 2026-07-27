@@ -111,35 +111,16 @@ final class GeneratePersonSegmentationViewModel: BaseModelDetailViewModel {
     }
 
     private func generateSegmentationOverlay(for image: UIImage, result: PersonSegmentation) async -> UIImage? {
-        // Extract pixel buffer from observation using cgImage as intermediate
+        // Extract the mask from the observation using cgImage as intermediate
         guard let cgImage = try? result.observation.cgImage else {
             return nil
         }
 
-        // Convert CGImage to CVPixelBuffer for mask rendering
-        let width = cgImage.width
-        let height = cgImage.height
-        let attrs = [kCVPixelBufferCGImageCompatibilityKey: kCFBooleanTrue,
-                    kCVPixelBufferCGBitmapContextCompatibilityKey: kCFBooleanTrue] as CFDictionary
-        var pixelBuffer: CVPixelBuffer?
-        CVPixelBufferCreate(kCFAllocatorDefault, width, height,
-                          kCVPixelFormatType_32ARGB, attrs, &pixelBuffer)
-
-        guard let pixelBuffer = pixelBuffer else {
-            return nil
-        }
-
-        CVPixelBufferLockBaseAddress(pixelBuffer, [])
-        if let context = CGContext(data: CVPixelBufferGetBaseAddress(pixelBuffer),
-                              width: width, height: height,
-                              bitsPerComponent: 8, bytesPerRow: CVPixelBufferGetBytesPerRow(pixelBuffer),
-                              space: CGColorSpaceCreateDeviceRGB(),
-                              bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue) {
-            context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-        }
-        CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
-
-        return await OverlayRenderer.renderBitmapMask(pixelBuffer, imageSize: image.size, tintColor: overlayColor)
+        return await OverlayRenderer.renderMask(
+            cgImage: cgImage,
+            imageSize: image.size,
+            tintColor: overlayColor
+        )
     }
 }
 

@@ -313,6 +313,69 @@ enum OverlayRenderer {
         return await RenderService.shared.renderToUIImage(image: scaledImage, from: CGRect(origin: .zero, size: imageSize))
     }
 
+    /// Renders a mask supplied as a `CGImage` with a tint color overlay.
+    ///
+    /// Mask-producing Vision requests vend a `PixelBufferObservation`, whose `cgImage`
+    /// property is the safest way to get at the mask data. This helper bounces that
+    /// `CGImage` through a `CVPixelBuffer` so it can be tinted by ``renderBitmapMask(_:imageSize:tintColor:flipVertically:)``.
+    ///
+    /// Note that the `CGContext` bounce performs one vertical flip of its own, which is
+    /// why callers using this path generally want `flipVertically` to remain `false`,
+    /// unlike callers that pass a raw `CVPixelBuffer` straight to `renderBitmapMask`.
+    /// - Parameters:
+    ///   - cgImage: The mask image, typically from `PixelBufferObservation.cgImage`.
+    ///   - imageSize: Size of the image to render on.
+    ///   - tintColor: Color to apply where the mask is white (black areas become transparent).
+    ///   - flipVertically: Whether to additionally flip the mask vertically.
+    /// - Returns: A `UIImage` containing the rendered colored mask overlay, or `nil` if
+    ///   the pixel buffer could not be created.
+    static func renderMask(
+        cgImage: CGImage,
+        imageSize: CGSize,
+        tintColor: UIColor,
+        flipVertically: Bool = false
+    ) async -> UIImage? {
+        let width = cgImage.width
+        let height = cgImage.height
+        let attrs = [
+            kCVPixelBufferCGImageCompatibilityKey: kCFBooleanTrue,
+            kCVPixelBufferCGBitmapContextCompatibilityKey: kCFBooleanTrue
+        ] as CFDictionary
+
+        var pixelBuffer: CVPixelBuffer?
+        CVPixelBufferCreate(
+            kCFAllocatorDefault,
+            width,
+            height,
+            kCVPixelFormatType_32ARGB,
+            attrs,
+            &pixelBuffer
+        )
+
+        guard let pixelBuffer else { return nil }
+
+        CVPixelBufferLockBaseAddress(pixelBuffer, [])
+        if let context = CGContext(
+            data: CVPixelBufferGetBaseAddress(pixelBuffer),
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: CVPixelBufferGetBytesPerRow(pixelBuffer),
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue
+        ) {
+            context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        }
+        CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
+
+        return await renderBitmapMask(
+            pixelBuffer,
+            imageSize: imageSize,
+            tintColor: tintColor,
+            flipVertically: flipVertically
+        )
+    }
+
     // MARK: - Private Helpers
 
     /// Draws a contour path
