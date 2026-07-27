@@ -228,6 +228,15 @@ struct VisionModelRegistry {
             requestType: .generateObjectnessBasedSaliencyImage
         ),
 
+        VisionModel(
+            id: "generate-iterative-segmentation",
+            name: "Generate Iterative Segmentation",
+            minimumIOSVersion: 27.0,
+            description: "Segments any object from a seed point, box, or scribble, then refines the mask as you add include and exclude points. Downloads its model on first use.",
+            category: .generation,
+            requestType: .generateIterativeSegmentation
+        ),
+
         // MARK: - Tracking Models
 
         VisionModel(

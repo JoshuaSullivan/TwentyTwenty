@@ -66,6 +66,7 @@ enum VisionRequestType: String {
     case generatePersonSegmentation
     case generateAttentionBasedSaliencyImage
     case generateObjectnessBasedSaliencyImage
+    case generateIterativeSegmentation
 
     // Tracking requests
     case trackObject

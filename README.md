@@ -4,7 +4,7 @@ A comprehensive iOS app showcasing the Vision framework's modern Swift API intro
 
 ## Overview
 
-TwentyTwenty demonstrates 31 different Vision framework models across 6 categories:
+TwentyTwenty demonstrates 32 different Vision framework models across 6 categories:
 
 - **Detection** - Locate and identify objects, faces, poses, and features in images
 - **Recognition** - Recognize text, animals, and documents
@@ -22,9 +22,19 @@ Each model has a dedicated detail view with:
 
 ## Requirements
 
-- iOS 18.0+
-- Xcode 16.0+
-- Swift 6.0+
+- iOS 26.0+ (deployment target)
+- Xcode 26.0+ to build
+- Xcode 27.0+ to include the Generate Iterative Segmentation model
+
+The project builds on Xcode 26, but `GenerateIterativeSegmentationRequest` is declared only
+in the iOS 27 SDK, and `@available` can't help with that — it gates execution, not
+compilation. That model is therefore wrapped in `#if compiler(>=6.4)` (Swift 6.4 ships with
+Xcode 27). On an Xcode 26 build it still appears in the model list, but opening it shows a
+notice explaining that it wasn't compiled in.
+
+Models are never hidden from the list. Anything that can't run routes to
+`ModelUnavailableView`, which distinguishes the two reasons: the device's iOS is older than
+the model requires, or the app was built with an SDK that predates the model's API.
 
 ## Architecture
 

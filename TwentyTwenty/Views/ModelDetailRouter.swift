@@ -81,6 +81,19 @@ struct ModelDetailRouter: View {
         case .generateImageFeaturePrint:
             GenerateImageFeaturePrintView(model: model)
 
+        case .generateIterativeSegmentation:
+            // Two independent gates. `#if` asks whether the SDK we compiled against declares
+            // the API at all; `#available` asks whether the device we're running on has it.
+            #if compiler(>=6.4)
+            if #available(iOS 27.0, *) {
+                GenerateIterativeSegmentationView(model: model)
+            } else {
+                ModelUnavailableView(model: model, reason: .deviceOSTooOld)
+            }
+            #else
+            ModelUnavailableView(model: model, reason: .buildSDKTooOld)
+            #endif
+
         case .trackObject:
             TrackObjectView(model: model)
 
