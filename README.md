@@ -1,6 +1,7 @@
 # TwentyTwenty
 
-A comprehensive iOS app showcasing the Vision framework's modern Swift API introduced in iOS 18.
+A comprehensive iOS app showcasing the Vision framework's modern Swift API — introduced in
+iOS 18 and tracked here through iOS 27.
 
 ## Overview
 
@@ -19,6 +20,32 @@ Each model has a dedicated detail view with:
 - Model-specific configuration options
 - Results visualization with overlays and statistics
 - Performance metrics
+
+## Newly supported in iOS 27
+
+**Generate Iterative Segmentation** (`GenerateIterativeSegmentationRequest`) — the headline
+addition, and the first model here that is genuinely interactive. It segments *any* object,
+not just people or a generic foreground. Seed it by tapping a point, dragging a box, or
+scribbling over the subject, then steer the result by adding points that mark regions to
+include or exclude. Each point re-runs the request against cached image analysis, so later
+iterations are typically faster than the first.
+
+It differs from every other request in the framework in two ways:
+
+- It is a **class** rather than a struct, because it accumulates refinement state across
+  successive `perform` calls, and there is no API to remove a point. Undo is implemented by
+  rebuilding the request from its seed and replaying the surviving points.
+- It adopts the new `DownloadableAssetsRequest` protocol — its model is not bundled with
+  iOS and is fetched on first use, with progress reported through Foundation's
+  `ProgressManager`.
+
+Vision caps refinement at 13 total points for point and scribble seeding, 11 for box seeding.
+
+**Algorithm revision pickers** — iOS 27 adds `revision4` to Detect Face Rectangles and
+Detect Face Landmarks, and `revision3` to Detect Human Rectangles. Those three screens now
+let you switch revisions and compare results. The list is driven by each request's
+`supportedRevisions`, which the OS filters at runtime, so newer revisions appear
+automatically on newer systems. Apple ships no documentation on what they improve.
 
 ## Requirements
 
@@ -54,6 +81,9 @@ When asking an AI to help with Vision framework code, you can reference this fil
 
 - Modern Vision API using Swift concurrency
 - Interactive result visualizations with Canvas-based overlays
+- Tap-, box- and scribble-driven interactive segmentation with iterative refinement
+- On-demand Vision model downloading with progress reporting
+- Selectable algorithm revisions on supported requests
 - Video playback with real-time tracking overlays
 - Color-coded pose joint rendering
 - Optical flow vector field visualization
